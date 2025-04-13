@@ -36,6 +36,14 @@ export interface PlayerInfo {
    * Base price of the player.
    */
   basePrice: number;
+    /**
+     * Current bid for the player
+     */
+  currentBid?: number;
+    /**
+     * The current bidder for the player
+     */
+  currentBidder?: string;
   /**
    * Player ID.
    */
@@ -43,6 +51,7 @@ export interface PlayerInfo {
 }
 
 const playerRoles = ['Opener', 'Middle-Order Batsman', 'Fast Bowler', 'Spin Bowler', 'Wicket-Keeper'];
+const teamNames = ['Mumbai Indians', 'Chennai Super Kings', 'Royal Challengers Bangalore', 'Kolkata Knight Riders'];
 
 /**
  * Generates a random number within a specified range.
@@ -56,16 +65,6 @@ function getRandomNumber(min: number, max: number): number {
 }
 
 /**
- * Generates a player name based on a given ID
- *
- * @param playerId The ID of the player
- * @returns A player name
- */
-function generatePlayerName(playerId: string): string {
-    return `Player ${playerId}`;
-}
-
-/**
  * Generates a random player with dynamic attributes.
  *
  * @param index The index of the player used to generate player ID.
@@ -73,14 +72,16 @@ function generatePlayerName(playerId: string): string {
  */
 function generateRandomPlayer(index: number): PlayerInfo {
   const playerId = `player${index + 1}`;
+    const teamName = teamNames[Math.floor(Math.random() * teamNames.length)];
   const battingAverage = getRandomNumber(20, 60);
   const economy = getRandomNumber(6, 10);
   const basePrice = Math.floor(getRandomNumber(20000, 100000));
-  const imageUrl = `https://picsum.photos/id/${index + 200}/200/300`;
+  // Replace with a more reliable image URL or a placeholder
+    const imageUrl = `https://source.unsplash.com/300x400/?cricketplayer,${teamName}`;
   const role = playerRoles[Math.floor(Math.random() * playerRoles.length)];
 
   return {
-    name: generatePlayerName(playerId),
+    name: `Player ${index + 1} (${teamName})`,
     role: role,
     stats: {
       battingAverage: parseFloat(battingAverage.toFixed(2)),

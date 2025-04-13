@@ -13,15 +13,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getPlayerInfo, PlayerInfo } from "@/services/player-info";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import {useEthers, useEtherBalance} from "@usedapp/core";
 import { formatEther } from 'ethers/lib/utils';
+import { ethers } from 'ethers';
 
 interface ModeratorControlsType {
   auctionStatus: string;
 }
 
 const AuctionPage = () => {
-    const [playerInfo, setPlayerInfo] = useState<PlayerInfo | undefined>(undefined);
+  const [playerInfo, setPlayerInfo] = useState<PlayerInfo | undefined>(undefined);
 
   const [moderatorControls, setModeratorControls] = useState<ModeratorControlsType>({
     auctionStatus: "Not Started",
@@ -41,12 +41,12 @@ const AuctionPage = () => {
     kolkata_knight_riders: { agentName: "Kolkata Knight Riders", strategyType: "smart", description: "Focuses on identifying undervalued players and building a versatile squad." },
   });
 
-    const [teamCompositions, setTeamCompositions] = useState<{ [agentId: string]: { name: string; role: string; stats: { battingAverage: number; economy: number }; imageUrl: string; } }>({
-        mumbai_indians: {},
-        chennai_super_kings: {},
-        royal_challengers_bangalore: {},
-        kolkata_knight_riders: {},
-    });
+  const [teamCompositions, setTeamCompositions] = useState<{ [agentId: string]: { name: string; role: string; stats: { battingAverage: number; economy: number }; imageUrl: string; } }>({
+    mumbai_indians: {},
+    chennai_super_kings: {},
+    royal_challengers_bangalore: {},
+    kolkata_knight_riders: {},
+  });
 
   const [aiPlayerRecommendations, setAiPlayerRecommendations] = useState<PlayerRecommendationsOutput>({
     recommendations: [],
@@ -57,133 +57,143 @@ const AuctionPage = () => {
   const [manualBidAmount, setManualBidAmount] = useState<number>(0);
   const [auctionTimer, setAuctionTimer] = useState<number>(60);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
-    const [currentPlayerId, setCurrentPlayerId] = useState<string>("player1");
-    const [walletAddress, setWalletAddress] = useState<string | null>(null);
-    const [hasWeb3Provider, setHasWeb3Provider] = useState(false);
-    const { activateBrowserWallet, account, chainId, library } = useEthers();
-    const etherBalance = useEtherBalance(account);
+  const [currentPlayerId, setCurrentPlayerId] = useState<string>("player1");
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [hasWeb3Provider, setHasWeb3Provider] = useState(false);
+  const [account, setAccount] = useState<string | null>(null);
+  const [etherBalance, setEtherBalance] = useState<string | null>("0");
 
+  // Function to connect to the user's wallet
+  const connectWallet = async () => {
+    if (typeof window !== 'undefined' && (window as any).ethereum) {
+      try {
+        const provider = new ethers.BrowserProvider((window as any).ethereum);
 
-    // Function to connect to the user's wallet
-    const connectWallet = async () => {
-        try {
-            activateBrowserWallet();
-            if (account) {
-                setWalletAddress(account);
-                setHasWeb3Provider(true);
-                toast({
-                    title: "Wallet Connected",
-                    description: `Connected with wallet: ${account}`,
-                });
-            } else {
-                toast({
-                    title: "No Web3 Provider Detected",
-                    description: "Please install Metamask or another Web3 provider.",
-                    variant: "destructive",
-                });
-            }
-        } catch (error) {
-            console.error("Error connecting wallet:", error);
-            toast({
-                title: "Connection Failed",
-                description: "There was an error connecting to your wallet. Please try again.",
-                variant: "destructive",
-            });
-        }
+        // Request account access if needed
+        await (window as any).ethereum.request({ method: 'eth_requestAccounts' });
 
-    };
+        const signer = await provider.getSigner();
+        const address = await signer.getAddress();
+
+        setAccount(address);
+        setWalletAddress(address);
+        setHasWeb3Provider(true);
+
+        const balance = await provider.getBalance(address);
+        setEtherBalance(formatEther(balance));
+
+        toast({
+          title: "Wallet Connected",
+          description: `Connected with wallet: ${address}`,
+        });
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        toast({
+          title: "Connection Failed",
+          description: "There was an error connecting to your wallet. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "No Web3 Provider Detected",
+        description: "Please install Metamask or another Web3 provider.",
+        variant: "destructive",
+      });
+    }
+  };
 
 
   const startAuction = () => {
-        setModeratorControls({ auctionStatus: "In Progress" });
+    setModeratorControls({ auctionStatus: "In Progress" });
+    toast({
+      title: "Auction Started",
+      description: "The auction has begun! Bidding is now open.",
+    });
+    setIsTimerRunning(true);
+  };
+
+  const handleManualBid = async () => {
+    if (!account) {
+      toast({
+        title: "Wallet Not Connected",
+        description: "Please connect your wallet to place a bid.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if ((manualBidAmount || 0) > (playerInfo?.currentBid || 0)) {
+      try {
+        // TODO: Implement the bidding transaction on the Web3 Monad testnet.
+        // This involves signing and sending a transaction to the auction contract.
+        // Example:
+        // const transactionHash = await bidOnAuction(manualBidAmount);
+        // setPlayerInfo((prev) => ({
+        //     ...prev,
+        //     currentBid: manualBidAmount,
+        //     currentBidder: "You",
+        // }));
+        // toast({
+        //     title: "Bid Placed",
+        //     description: `You have placed a bid for $${manualBidAmount}! Transaction Hash: ${transactionHash}`,
+        // });
+        setPlayerInfo((prev) => ({
+          ...prev!,
+          currentBid: manualBidAmount,
+          currentBidder: account,
+        }));
         toast({
-            title: "Auction Started",
-            description: "The auction has begun! Bidding is now open.",
+          title: "Bid Placed",
+          description: `You have placed a bid for $${manualBidAmount}!`,
         });
-        setIsTimerRunning(true);
+
+      } catch (error) {
+        console.error("Error placing manual bid:", error);
+        toast({
+          title: "Bid Failed",
+          description: "There was an error placing your bid. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: "Bid Too Low",
+        description: "Please enter a bid higher than the current bid.",
+        variant: "destructive",
+        });
+    }
+  };
+
+  // Placeholder function for bidding on the auction (to be replaced with actual Web3 calls)
+  const bidOnAuction = async (amount: number) => {
+    // TODO: Implement the actual Web3 call to bid on the auction.
+    // This function should sign and send a transaction to the smart contract.
+    // Return the transaction hash upon successful submission.
+    console.log(`Simulating bid of $${amount} on the Web3 Monad testnet.`);
+    return '0xSimulatedTransactionHash'; // Replace with actual transaction hash
+  };
+
+  useEffect(() => {
+    // Check if Web3 provider is available on mount
+    if (typeof window !== 'undefined' && (window as any).ethereum) {
+      setHasWeb3Provider(true);
+    }
+  }, []);
+
+
+  useEffect(() => {
+    const fetchPlayerInfo = async () => {
+      const player = await getPlayerInfo(currentPlayerId);
+      if (player) {
+        setPlayerInfo(player);
+      } else {
+        console.error("Failed to fetch player info for ID:", currentPlayerId);
+      }
     };
 
-    const handleManualBid = async () => {
-        if (!account) {
-            toast({
-                title: "Wallet Not Connected",
-                description: "Please connect your wallet to place a bid.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        if ((manualBidAmount || 0) > (playerInfo?.currentBid || 0)) {
-            try {
-                // TODO: Implement the bidding transaction on the Web3 Monad testnet.
-                // This involves signing and sending a transaction to the auction contract.
-                // Example:
-                // const transactionHash = await bidOnAuction(manualBidAmount);
-                // setPlayerInfo((prev) => ({
-                //     ...prev,
-                //     currentBid: manualBidAmount,
-                //     currentBidder: "You",
-                // }));
-                // toast({
-                //     title: "Bid Placed",
-                //     description: `You have placed a bid for $${manualBidAmount}! Transaction Hash: ${transactionHash}`,
-                // });
-                setPlayerInfo((prev) => ({
-                    ...prev!,
-                    currentBid: manualBidAmount,
-                    currentBidder: account,
-                }));
-                toast({
-                    title: "Bid Placed",
-                    description: `You have placed a bid for $${manualBidAmount}!`,
-                });
-
-            } catch (error) {
-                console.error("Error placing manual bid:", error);
-                toast({
-                    title: "Bid Failed",
-                    description: "There was an error placing your bid. Please try again.",
-                    variant: "destructive",
-                });
-            }
-        } else {
-            toast({
-                title: "Bid Too Low",
-                description: "Please enter a bid higher than the current bid.",
-                variant: "destructive",
-            });
-        }
-    };
-
-    // Placeholder function for bidding on the auction (to be replaced with actual Web3 calls)
-    const bidOnAuction = async (amount: number) => {
-        // TODO: Implement the actual Web3 call to bid on the auction.
-        // This function should sign and send a transaction to the smart contract.
-        // Return the transaction hash upon successful submission.
-        console.log(`Simulating bid of $${amount} on the Web3 Monad testnet.`);
-        return '0xSimulatedTransactionHash'; // Replace with actual transaction hash
-    };
-
-    useEffect(() => {
-        // Check if Web3 provider is available on mount
-        if (typeof window !== 'undefined' && (window as any).ethereum) {
-            setHasWeb3Provider(true);
-        }
-    }, []);
-
-
-    useEffect(() => {
-        const fetchPlayerInfo = async () => {
-            const player = await getPlayerInfo(currentPlayerId);
-            if (player) {
-                setPlayerInfo(player);
-            } else {
-                console.error("Failed to fetch player info for ID:", currentPlayerId);
-            }
-        };
-
-        fetchPlayerInfo();
-    }, [currentPlayerId]);
+    fetchPlayerInfo();
+  }, [currentPlayerId]);
 
   useEffect(() => {
     let isMounted = true; // Add a flag to track component mount status
@@ -218,25 +228,25 @@ const AuctionPage = () => {
     };
   }, []);
 
-    useEffect(() => {
-        let timerInterval: NodeJS.Timeout;
+  useEffect(() => {
+    let timerInterval: NodeJS.Timeout;
 
-        if (isTimerRunning && auctionTimer > 0) {
-            timerInterval = setInterval(() => {
-                setAuctionTimer(prevTimer => prevTimer - 1);
-            }, 1000);
-        } else if (auctionTimer === 0) {
-            setIsTimerRunning(false);
-            toast({
-                title: "Time's Up!",
-                description: `The bidding for ${playerInfo?.name} is over.`,
-            });
-            // TODO: Implement logic to sell the player to the highest bidder
-            // and push the next player for bidding
-        }
+    if (isTimerRunning && auctionTimer > 0) {
+      timerInterval = setInterval(() => {
+        setAuctionTimer(prevTimer => prevTimer - 1);
+      }, 1000);
+    } else if (auctionTimer === 0) {
+      setIsTimerRunning(false);
+      toast({
+        title: "Time's Up!",
+        description: `The bidding for ${playerInfo?.name} is over.`,
+      });
+      // TODO: Implement logic to sell the player to the highest bidder
+      // and push the next player for bidding
+    }
 
-        return () => clearInterval(timerInterval);
-    }, [isTimerRunning, auctionTimer, playerInfo?.name, toast]);
+    return () => clearInterval(timerInterval);
+  }, [isTimerRunning, auctionTimer, playerInfo?.name, toast]);
 
   useEffect(() => {
     // Simulate real-time updates and AI bidding
@@ -264,29 +274,29 @@ const AuctionPage = () => {
         const bidDecision = await aiBiddingStrategy(biddingStrategyInput);
         if (bidDecision.bidDecision) {
           newBids[agentId] = bidDecision.bidAmount;
-            // AI agent places a bid transaction
-            try {
-                // TODO: Implement the bidding transaction on the Web3 Monad testnet for AI agents.
-                // This involves signing and sending a transaction to the auction contract.
-                // const transactionHash = await bidOnAuction(bidDecision.bidAmount);
-                // setAiAgentBids((prev) => ({ ...prev, [agentId]: bidDecision.bidAmount }));
-                // toast({
-                //     title: "AI Bid Placed",
-                //     description: `${profile.agentName} has placed a bid for $${bidDecision.bidAmount}! Transaction Hash: ${transactionHash}`,
-                // });
-                setAiAgentBids((prev) => ({ ...prev, [agentId]: bidDecision.bidAmount }));
-                toast({
-                    title: "AI Bid Placed",
-                    description: `${profile.agentName} has placed a bid for $${bidDecision.bidAmount}!`,
-                });
-            } catch (error) {
-                console.error("Error placing AI bid:", error);
-                toast({
-                    title: "AI Bid Failed",
-                    description: `There was an error placing AI bid for ${profile.agentName}. Please check console.`,
-                    variant: "destructive",
-                });
-            }
+          // AI agent places a bid transaction
+          try {
+            // TODO: Implement the bidding transaction on the Web3 Monad testnet for AI agents.
+            // This involves signing and sending a transaction to the auction contract.
+            // const transactionHash = await bidOnAuction(bidDecision.bidAmount);
+            // setAiAgentBids((prev) => ({ ...prev, [agentId]: bidDecision.bidAmount }));
+            // toast({
+            //     title: "AI Bid Placed",
+            //     description: `${profile.agentName} has placed a bid for $${bidDecision.bidAmount}! Transaction Hash: ${transactionHash}`,
+            // });
+            setAiAgentBids((prev) => ({ ...prev, [agentId]: bidDecision.bidAmount }));
+            toast({
+              title: "AI Bid Placed",
+              description: `${profile.agentName} has placed a bid for $${bidDecision.bidAmount}!`,
+            });
+          } catch (error) {
+            console.error("Error placing AI bid:", error);
+            toast({
+              title: "AI Bid Failed",
+              description: `There was an error placing AI bid for ${profile.agentName}. Please check console.`,
+              variant: "destructive",
+            });
+          }
         } else {
           newBids[agentId] = 0;
         }
@@ -316,119 +326,131 @@ const AuctionPage = () => {
 
   return (
     <>
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Auction Page</h1>
-        {/* Connect Wallet Button */}
-        {!hasWeb3Provider ? (
-            <Alert variant="destructive">
-                <AlertTitle>Web3 Provider Required</AlertTitle>
-                <AlertDescription>
-                    Please install a Web3 provider like Metamask to participate in the auction.
-                </AlertDescription>
-            </Alert>
-        ) : !account ? (
+      
+        
+          <h1>Auction Page</h1>
+          {/* Connect Wallet Button */}
+          {!hasWeb3Provider ? (
+            
+              Web3 Provider Required
+              Please install a Web3 provider like Metamask to participate in the auction.
+            
+          ) : !account ? (
             <Button onClick={connectWallet}>Connect Wallet</Button>
-        ) : (
+          ) : (
             <p>Connected with wallet: {account} - Balance: {etherBalance ? parseFloat(formatEther(etherBalance)).toFixed(2) : "0"} ETH</p>
-        )}
+          )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Player Card */}
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle>{playerInfo ? playerInfo.name : <Skeleton/>}</CardTitle>
-            <CardDescription>{playerInfo ? playerInfo.role : (<Skeleton/>)}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center">
-              <Avatar className="mb-4 h-32 w-32">
+          
+            {/* Player Card */}
+            
+              
+                {playerInfo ? playerInfo.name : <Skeleton />}
+                {playerInfo ? playerInfo.role : <Skeleton />}
+              
+              
+                
                   {playerInfo ? (
-                      <>
-                          <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
-                              e.currentTarget.src = "https://picsum.photos/200/300";
-                          }}/>
-                          <AvatarFallback>{playerInfo.name.substring(0, 2)}</AvatarFallback>
-                      </>
+                    
+                      <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
+                        e.currentTarget.src = "https://picsum.photos/200/300";
+                      }} />
+                      {playerInfo.name.substring(0, 2)}
+                    
                   ) : (
-                      <Skeleton className="h-32 w-32 rounded-full"/>
+                    <Skeleton className="h-32 w-32 rounded-full" />
                   )}
 
-              </Avatar>
-            <p>Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton/>}</p>
-            <p>Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton/>}</p>
-            <p>Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton/>}</p>
-            <p>Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton/>}</p>
-            <p>Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton/>}</p>
-              <p>Time Remaining: {auctionTimer} seconds</p>
-            <div className="flex mt-4">
-              <Input
-                type="number"
-                placeholder="Enter your bid"
-                className="mr-2"
-                value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
-                onChange={(e) => setManualBidAmount(Number(e.target.value))}
-              />
-              <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
-            </div>
-          </CardContent>
-        </Card>
+                
+                Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton />}
+                Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton />}
+                Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton />}
+                Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton />}
+                Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton />}
+                Time Remaining: {auctionTimer} seconds
+                
+                  <Input
+                    type="number"
+                    placeholder="Enter your bid"
+                    className="mr-2"
+                    value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
+                    onChange={(e) => setManualBidAmount(Number(e.target.value))}
+                  />
+                  <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
+                
+              
+            
 
-        {/* Moderator Control Panel */}
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle>Moderator Controls</CardTitle>
-            <CardDescription>Control the auction flow</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Auction Status: {moderatorControls.auctionStatus}</p>
-            <div className="flex flex-col space-y-2">
-              <Button onClick={startAuction} disabled={moderatorControls.auctionStatus === "In Progress"}>
-                  Start Auction
-              </Button>
-              <Button>Pause Auction</Button>
-              <Button>Resume Auction</Button>
-              <Button>End Auction</Button>
-              <Button>Next Player</Button>
-              <Button variant="destructive">Override/Freeze Auction</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            {/* Moderator Control Panel */}
+            
+              
+                Moderator Controls
+                Control the auction flow
+              
+              
+                Auction Status: {moderatorControls.auctionStatus}
+                
+                  
+                    Start Auction
+                  
+                  
+                    Pause Auction
+                  
+                  
+                    Resume Auction
+                  
+                  
+                    End Auction
+                  
+                  
+                    Next Player
+                  
+                  
+                    Override/Freeze Auction
+                  
+                
+              
+            
+          
 
-      {/* AI Agent Bids Display */}
-      <div className="mt-4">
-        <h2 className="text-xl font-bold mb-2">IPL Team Bids</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
-            <Card key={agentId} className="bg-card">
-              <CardHeader>
-                <CardTitle>{profile.agentName}</CardTitle>
-                <CardDescription>{profile.description}</CardDescription>
-                <Badge>{profile.strategyType}</Badge>
-              </CardHeader>
-              <CardContent>
-                <p>Bid Amount: ${aiAgentBids[agentId] || 0}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+          {/* AI Agent Bids Display */}
+          
+            IPL Team Bids
+            
+              {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
+                
+                  
+                    {profile.agentName}
+                    {profile.description}
+                    {profile.strategyType}
+                  
+                  
+                    Bid Amount: ${aiAgentBids[agentId] || 0}
+                  
+                
+              ))}
+            
+          
 
-      {/* AI Player Recommendations Display */}
-      <div className="mt-4">
-        <h2 className="text-xl font-bold mb-2">AI Player Recommendations</h2>
-        {aiPlayerRecommendations.recommendations.length > 0 ? (
-          <ul>
-            {aiPlayerRecommendations.recommendations.map((recommendation) => (
-              <li key={recommendation.playerId}>
-                {recommendation.playerId} - {recommendation.reason}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>No recommendations available.</p>
-        )}
-      </div>
-    </div>
+          {/* AI Player Recommendations Display */}
+          
+            AI Player Recommendations
+            {aiPlayerRecommendations.recommendations.length > 0 ? (
+              
+                {aiPlayerRecommendations.recommendations.map((recommendation) => (
+                  
+                    {recommendation.playerId} - {recommendation.reason}
+                  
+                ))}
+              
+            ) : (
+              
+                No recommendations available.
+              
+            )}
+          
+        
+      
     </>
   );
 };
