@@ -9,6 +9,7 @@ import { getPlayerRecommendations, PlayerRecommendationsOutput } from '@/ai/flow
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 interface PlayerInfoType {
   name: string;
@@ -18,6 +19,15 @@ interface PlayerInfoType {
   currentBid: number;
   currentBidder: string;
   imageUrl: string;
+}
+
+interface TeamType {
+  [playerId: string]: {
+    name: string;
+    role: string;
+    stats: { battingAverage: number; economy: number };
+    imageUrl: string;
+  };
 }
 
 interface ModeratorControlsType {
@@ -53,6 +63,13 @@ const AuctionPage = () => {
     kolkata_knight_riders: { agentName: "Kolkata Knight Riders", strategyType: "smart", description: "Focuses on identifying undervalued players and building a versatile squad." },
   });
 
+    const [teamCompositions, setTeamCompositions] = useState<{ [agentId: string]: TeamType }>({
+        mumbai_indians: {},
+        chennai_super_kings: {},
+        royal_challengers_bangalore: {},
+        kolkata_knight_riders: {},
+    });
+
   const [aiPlayerRecommendations, setAiPlayerRecommendations] = useState<PlayerRecommendationsOutput>({
     recommendations: [],
   });
@@ -60,6 +77,17 @@ const AuctionPage = () => {
   const { toast } = useToast()
 
   const [manualBidAmount, setManualBidAmount] = useState<number>(0);
+  const [auctionTimer, setAuctionTimer] = useState<number>(60);
+  const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+
+    const startAuction = () => {
+        setModeratorControls({ auctionStatus: "In Progress" });
+        toast({
+            title: "Auction Started",
+            description: "The auction has begun! Bidding is now open.",
+        });
+        setIsTimerRunning(true);
+    };
 
   const handleManualBid = () => {
     if (manualBidAmount > playerInfo.currentBid) {
@@ -114,6 +142,26 @@ const AuctionPage = () => {
       isMounted = false; // Set the flag to false when component unmounts
     };
   }, []);
+
+    useEffect(() => {
+        let timerInterval: NodeJS.Timeout;
+
+        if (isTimerRunning && auctionTimer > 0) {
+            timerInterval = setInterval(() => {
+                setAuctionTimer(prevTimer => prevTimer - 1);
+            }, 1000);
+        } else if (auctionTimer === 0) {
+            setIsTimerRunning(false);
+            toast({
+                title: "Time's Up!",
+                description: `The bidding for ${playerInfo.name} is over.`,
+            });
+            // TODO: Implement logic to sell the player to the highest bidder
+            // and push the next player for bidding
+        }
+
+        return () => clearInterval(timerInterval);
+    }, [isTimerRunning, auctionTimer, playerInfo.name, toast]);
 
   useEffect(() => {
     // Simulate real-time updates and AI bidding
@@ -181,19 +229,16 @@ const AuctionPage = () => {
             <CardDescription>{playerInfo.role}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
-            <img
-              src={playerInfo.imageUrl}
-              alt={playerInfo.name}
-              className="rounded-md mb-4"
-              width="200"
-              height="300"
-            />
+              <Avatar className="mb-4 h-32 w-32">
+                  <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} />
+                  <AvatarFallback>{playerInfo.name.substring(0, 2)}</AvatarFallback>
+              </Avatar>
             <p>Batting Avg: {playerInfo.stats.battingAverage}</p>
             <p>Economy: {playerInfo.stats.economy}</p>
             <p>Base Price: ${playerInfo.basePrice}</p>
             <p>Current Bid: ${playerInfo.currentBid}</p>
             <p>Current Bidder: {playerInfo.currentBidder}</p>
-            {/* TODO: Add bid timer */}
+              <p>Time Remaining: {auctionTimer} seconds</p>
             <div className="flex mt-4">
               <Input
                 type="number"
@@ -216,10 +261,9 @@ const AuctionPage = () => {
           <CardContent>
             <p>Auction Status: {moderatorControls.auctionStatus}</p>
             <div className="flex flex-col space-y-2">
-              <Button onClick={() => toast({
-                  title: "Auction Started",
-                  description: "The auction has been started!",
-                })}>Start Auction</Button>
+              <Button onClick={startAuction} disabled={moderatorControls.auctionStatus === "In Progress"}>
+                  Start Auction
+              </Button>
               <Button>Pause Auction</Button>
               <Button>Resume Auction</Button>
               <Button>End Auction</Button>
