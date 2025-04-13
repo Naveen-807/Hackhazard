@@ -16,6 +16,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatEther } from 'ethers/lib/utils';
 import { ethers } from 'ethers';
 
+// Contract addresses - your deployed contract addresses
+const NFT_CONTRACT_ADDRESS = "0xf8e81D47203A594245E36C48e151709F0C19fBe8"; // AutomatedNFT
+const AUTOMATOR_CONTRACT_ADDRESS = "0xd8b934580fcE35a11B58C6D73aDeE468a2833fa8"; // TransactionAutomator
+
 interface ModeratorControlsType {
   auctionStatus: string;
 }
@@ -324,32 +328,36 @@ const AuctionPage = () => {
     return () => clearInterval(interval);
   }, [aiAgentProfiles, playerInfo?.basePrice, playerInfo?.currentBid, playerInfo?.currentBidder, toast]);
 
+
   return (
     
       
         
-          Auction Page
           
           
-            {!hasWeb3Provider ? (
-              
+            
+              Auction Page
+            
+            
+              {!hasWeb3Provider ? (
+                <>
+                  
+                    Web3 Provider Required
+                  
+                  Please install a Web3 provider like Metamask to participate in the auction.
+                </>
+              ) : !account ? (
+                <Button onClick={connectWallet}>Connect Wallet</Button>
+              ) : (
                 
-                  Web3 Provider Required
+                  
+                    Connected with wallet: {account}
+                  
+                  Balance: {etherBalance ? etherBalance : "0"} ETH
                 
-                Please install a Web3 provider like Metamask to participate in the auction.
-              
-            ) : !account ? (
-              <Button onClick={connectWallet}>Connect Wallet</Button>
-            ) : (
-              
-                
-                  Connected with wallet: {account}
-                
-                Balance: {etherBalance ? etherBalance : "0"} ETH
-              
-            )}
+              )}
+            
           
-        
 
         
           
