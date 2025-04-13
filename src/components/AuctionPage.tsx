@@ -8,6 +8,7 @@ import { aiBiddingStrategy, AiBiddingStrategyOutput } from '@/ai/flows/ai-biddin
 import { getPlayerRecommendations, PlayerRecommendationsOutput } from '@/ai/flows/player-recommendations';
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
 
 interface PlayerInfoType {
   name: string;
@@ -46,10 +47,10 @@ const AuctionPage = () => {
   });
 
   const [aiAgentProfiles, setAiAgentProfiles] = useState<{ [agentId: string]: AIAgentProfileOutput }>({
-    mumbai_indians: { agentName: "Loading...", strategyType: "balanced", description: "Loading..." },
-    chennai_super_kings: { agentName: "Loading...", strategyType: "balanced", description: "Loading..." },
-    royal_challengers_bangalore: { agentName: "Loading...", strategyType: "aggressive", description: "Loading..." },
-    kolkata_knight_riders: { agentName: "Loading...", strategyType: "smart", description: "Loading..." },
+    mumbai_indians: { agentName: "Mumbai Indians", strategyType: "balanced", description: "Known for their strategic player acquisitions and building a strong core team." },
+    chennai_super_kings: { agentName: "Chennai Super Kings", strategyType: "balanced", description: "Focuses on experienced players and maintaining a balanced team composition." },
+    royal_challengers_bangalore: { agentName: "Royal Challengers Bangalore", strategyType: "aggressive", description: "Known for aggressive bidding on star players to create a high-profile team." },
+    kolkata_knight_riders: { agentName: "Kolkata Knight Riders", strategyType: "smart", description: "Focuses on identifying undervalued players and building a versatile squad." },
   });
 
   const [aiPlayerRecommendations, setAiPlayerRecommendations] = useState<PlayerRecommendationsOutput>({
@@ -57,6 +58,29 @@ const AuctionPage = () => {
   });
 
   const { toast } = useToast()
+
+  const [manualBidAmount, setManualBidAmount] = useState<number>(0);
+
+  const handleManualBid = () => {
+    if (manualBidAmount > playerInfo.currentBid) {
+      setPlayerInfo((prev) => ({
+        ...prev,
+        currentBid: manualBidAmount,
+        currentBidder: "You",
+      }));
+      toast({
+        title: "Bid Placed",
+        description: `You have placed a bid for $${manualBidAmount}!`,
+      });
+    } else {
+      toast({
+        title: "Bid Too Low",
+        description: "Please enter a bid higher than the current bid.",
+        variant: "destructive",
+      });
+    }
+  };
+
 
   useEffect(() => {
     let isMounted = true; // Add a flag to track component mount status
@@ -124,8 +148,8 @@ const AuctionPage = () => {
       }
 
       // Find the highest bidder among AI agents
-      let highestBid = 0;
-      let highestBidder = "None";
+      let highestBid = playerInfo.currentBid;
+      let highestBidder = playerInfo.currentBidder;
       for (const agentId in newBids) {
         if (newBids[agentId] > highestBid) {
           highestBid = newBids[agentId];
@@ -143,7 +167,7 @@ const AuctionPage = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [aiAgentProfiles, playerInfo.basePrice, playerInfo.currentBid]);
+  }, [aiAgentProfiles, playerInfo.basePrice, playerInfo.currentBid, playerInfo.currentBidder]);
 
   return (
     <div className="container mx-auto p-4">
@@ -170,6 +194,16 @@ const AuctionPage = () => {
             <p>Current Bid: ${playerInfo.currentBid}</p>
             <p>Current Bidder: {playerInfo.currentBidder}</p>
             {/* TODO: Add bid timer */}
+            <div className="flex mt-4">
+              <Input
+                type="number"
+                placeholder="Enter your bid"
+                className="mr-2"
+                value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
+                onChange={(e) => setManualBidAmount(Number(e.target.value))}
+              />
+              <Button onClick={handleManualBid}>Place Bid</Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -235,4 +269,3 @@ const AuctionPage = () => {
 };
 
 export default AuctionPage;
-
