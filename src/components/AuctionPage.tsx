@@ -331,82 +331,87 @@ const AuctionPage = () => {
 
 
   return (
+    <>
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">
         Auction Page
       </h1>
       {/* Connect Wallet Button */}
-      {!hasWeb3Provider ? (
-        <>
-          <span>Web3 Provider Required</span>
-          Please install a Web3 provider like Metamask to participate in the auction.
-        </>
-      ) : !account ? (
-        
-          Connect Wallet
-        
-      ) : (
-        
-          
-            Connected with wallet: {account}
-          
-          Balance: {etherBalance ? etherBalance : "0"} ETH
-        
-      )}
+        {!hasWeb3Provider ? (
+          <>
+            <span>Web3 Provider Required</span>
+            Please install a Web3 provider like Metamask to participate in the auction.
+          </>
+        ) : !account ? (
+          <Button onClick={connectWallet}>
+            Connect Wallet
+          </Button>
+        ) : (
+          <>
+            
+              Connected with wallet: {account}
+            
+            
+              Balance: {etherBalance ? etherBalance : "0"} ETH
+            
+          </>
+        )}
 
-      
         
-          
-            {playerInfo ? playerInfo.name : <Skeleton />}
-          
-          
-            {playerInfo ? playerInfo.role : <Skeleton />}
-          
           
             
-              {playerInfo ? (
-                <>
+              {playerInfo ? playerInfo.name : <Skeleton />}
+            
+            
+              {playerInfo ? playerInfo.role : <Skeleton />}
+            
+            
+              
+                {playerInfo ? (
                   
-                    <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
-                      e.currentTarget.src = "https://picsum.photos/200/300";
-                    }} />
+                    
+                      
+                        e.currentTarget.src = "https://picsum.photos/200/300";
+                      }} />
+                      
                     
                   
-                </>
-              ) : (
-                <Skeleton />
-              )}
+                ) : (
+                  <Skeleton />
+                )}
+              
             
           
         
-      
 
-      
         
-          IPL Team Bids
-        
-        
-          {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
-            
+          
+            IPL Team Bids
+          
+          
+            {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
               
                 
-                  {profile.strategyType}
                   
-                    {profile.agentName}
+                    {profile.strategyType}
+                    
+                      {profile.agentName}
+                    
+                    
+                      {profile.description}
+                    
                   
                   
-                    {profile.description}
+                    <strong>Bid Amount: ${aiAgentBids[agentId] || 0}</strong>
                   
-                
-                
-                  <strong>Bid Amount: ${aiAgentBids[agentId] || 0}</strong>
                 
               
-            
-          ))}
+            ))}
+          
         
       
     </div>
+     </>
   );
 };
 
