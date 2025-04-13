@@ -15,6 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatEther } from 'ethers/lib/utils';
 import { ethers } from 'ethers';
+import { Icons } from "@/components/icons";
 
 // Contract addresses - your deployed contract addresses
 const NFT_CONTRACT_ADDRESS = "0xf8e81D47203A594245E36C48e151709F0C19fBe8"; // AutomatedNFT
@@ -333,123 +334,50 @@ const AuctionPage = () => {
     
       
         
+          Auction Page
+        
+        {/* Connect Wallet Button */}
+        {!hasWeb3Provider ? (
+          <>
+            <span>Web3 Provider Required</span>
+            Please install a Web3 provider like Metamask to participate in the auction.
+          </>
+        ) : !account ? (
           
+            Connect Wallet
+          
+        ) : (
           
             
-              Auction Page
+              Connected with wallet: {account}
             
-            
-              {!hasWeb3Provider ? (
-                <>
-                  
-                    Web3 Provider Required
-                  
-                  Please install a Web3 provider like Metamask to participate in the auction.
-                </>
-              ) : !account ? (
-                <Button onClick={connectWallet}>Connect Wallet</Button>
-              ) : (
-                
-                  
-                    Connected with wallet: {account}
-                  
-                  Balance: {etherBalance ? etherBalance : "0"} ETH
-                
-              )}
-            
+            Balance: {etherBalance ? etherBalance : "0"} ETH
           
+        )}
+      
 
+      
         
           
-            
+            {playerInfo ? playerInfo.name : <Skeleton />}
+          
+          
+            {playerInfo ? playerInfo.role : <Skeleton />}
+          
+          
               
-                {playerInfo ? playerInfo.name : <Skeleton className="h-8 w-48" />}
-              
-              
-                {playerInfo ? playerInfo.role : <Skeleton className="h-4 w-24" />}
-              
-            
-            
-              
-                
-                  {playerInfo ? (
+                {playerInfo ? (
+                  <>
                     
                       <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
                         e.currentTarget.src = "https://picsum.photos/200/300";
                       }} />
                       <AvatarFallback>{playerInfo.name.substring(0, 2)}</AvatarFallback>
                     
-                  ) : (
-                    <Skeleton className="h-32 w-32 rounded-full" />
-                  )}
-                
-
-                
+                  </>
+                ) : (
                   
-                    Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton className="h-4 w-16 inline-block" />}
-                  
-                  
-                    Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton className="h-4 w-16 inline-block" />}
-                  
-                  
-                    Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton className="h-4 w-16 inline-block" />}
-                  
-                  
-                    Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton className="h-4 w-16 inline-block" />}
-                  
-                  
-                    Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton className="h-4 w-32 inline-block" />}
-                  
-                  
-                    Time Remaining: {auctionTimer} seconds
-                  
-                  
-                    <Input
-                      type="number"
-                      placeholder="Enter your bid"
-                      className="mr-2"
-                      value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
-                      onChange={(e) => setManualBidAmount(Number(e.target.value))}
-                    />
-                    <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
-                  
-                
-              
-            
-          
-
-          
-            
-              
-                Moderator Controls
-              
-              
-                Control the auction flow
-              
-            
-            
-              
-                Auction Status: {moderatorControls.auctionStatus}
-                
-                  
-                    Start Auction
-                  
-                  
-                    Pause Auction
-                  
-                  
-                    Resume Auction
-                  
-                  
-                    End Auction
-                  
-                  
-                    Next Player
-                  
-                  
-                    Override/Freeze Auction
-                  
-                
+                )}
               
             
           
@@ -457,50 +385,27 @@ const AuctionPage = () => {
 
         
           
-            
-              IPL Team Bids
-            
-            
-              {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
+            IPL Team Bids
+          
+          
+            {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
+              
                 
                   
+                    {profile.strategyType}
                     
-                      {profile.strategyType}
-                      
-                        {profile.agentName}
-                      
-                      
-                        {profile.description}
-                      
+                      {profile.agentName}
                     
                     
-                      <strong>Bid Amount: ${aiAgentBids[agentId] || 0}</strong>
+                      {profile.description}
                     
                   
+                  
+                    <strong>Bid Amount: ${aiAgentBids[agentId] || 0}</strong>
+                  
                 
-              ))}
-            
-          
-
-          
-            
-              AI Player Recommendations
-            
-            
-              {aiPlayerRecommendations.recommendations.length > 0 ? (
-                
-                  {aiPlayerRecommendations.recommendations.map((recommendation, index) => (
-                    
-                      {recommendation.playerId} - {recommendation.reason}
-                    
-                  ))}
-                
-              ) : (
-                
-                  No recommendations available.
-                
-              )}
-            
+              
+            ))}
           
         
       
