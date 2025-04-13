@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getPlayerInfo, PlayerInfo } from "@/services/player-info";
+import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 
 interface ModeratorControlsType {
   auctionStatus: string;
@@ -62,6 +63,32 @@ const AuctionPage = () => {
   const [auctionTimer, setAuctionTimer] = useState<number>(60);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
     const [currentPlayerId, setCurrentPlayerId] = useState<string>("player1");
+    const [walletAddress, setWalletAddress] = useState<string | null>(null);
+    const [hasWeb3Provider, setHasWeb3Provider] = useState(false);
+
+
+    // Function to connect to the user's wallet
+    const connectWallet = async () => {
+        // TODO: Implement Web3 provider connection logic here (e.g., using Metamask).
+        // After successful connection, set the wallet address and hasWeb3Provider to true.
+        // Example:
+        // if (window.ethereum) {
+        //   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        //   setWalletAddress(accounts[0]);
+        //   setHasWeb3Provider(true);
+        // } else {
+        //   toast({
+        //     title: "No Web3 Provider Detected",
+        //     description: "Please install Metamask or another Web3 provider.",
+        //     variant: "destructive",
+        //   });
+        // }
+        toast({
+            title: "Connect Wallet",
+            description: "Connect wallet functionality to be implemented",
+        });
+    };
+
 
   const startAuction = () => {
         setModeratorControls({ auctionStatus: "In Progress" });
@@ -72,25 +99,74 @@ const AuctionPage = () => {
         setIsTimerRunning(true);
     };
 
-  const handleManualBid = () => {
-    if (manualBidAmount > playerInfo.currentBid) {
-      setPlayerInfo((prev) => ({
-        ...prev,
-        currentBid: manualBidAmount,
-        currentBidder: "You",
-      }));
-      toast({
-        title: "Bid Placed",
-        description: `You have placed a bid for $${manualBidAmount}!`,
-      });
-    } else {
-      toast({
-        title: "Bid Too Low",
-        description: "Please enter a bid higher than the current bid.",
-        variant: "destructive",
-      });
-    }
-  };
+    const handleManualBid = async () => {
+        if (!hasWeb3Provider || !walletAddress) {
+            toast({
+                title: "Wallet Not Connected",
+                description: "Please connect your wallet to place a bid.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (manualBidAmount > playerInfo.currentBid) {
+            try {
+                // TODO: Implement the bidding transaction on the Web3 Monad testnet.
+                // This involves signing and sending a transaction to the auction contract.
+                // Example:
+                // const transactionHash = await bidOnAuction(manualBidAmount);
+                // setPlayerInfo((prev) => ({
+                //     ...prev,
+                //     currentBid: manualBidAmount,
+                //     currentBidder: "You",
+                // }));
+                // toast({
+                //     title: "Bid Placed",
+                //     description: `You have placed a bid for $${manualBidAmount}! Transaction Hash: ${transactionHash}`,
+                // });
+                setPlayerInfo((prev) => ({
+                    ...prev,
+                    currentBid: manualBidAmount,
+                    currentBidder: "You",
+                }));
+                toast({
+                    title: "Bid Placed",
+                    description: `You have placed a bid for $${manualBidAmount}!`,
+                });
+
+            } catch (error) {
+                console.error("Error placing manual bid:", error);
+                toast({
+                    title: "Bid Failed",
+                    description: "There was an error placing your bid. Please try again.",
+                    variant: "destructive",
+                });
+            }
+        } else {
+            toast({
+                title: "Bid Too Low",
+                description: "Please enter a bid higher than the current bid.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    // Placeholder function for bidding on the auction (to be replaced with actual Web3 calls)
+    const bidOnAuction = async (amount: number) => {
+        // TODO: Implement the actual Web3 call to bid on the auction.
+        // This function should sign and send a transaction to the smart contract.
+        // Return the transaction hash upon successful submission.
+        console.log(`Simulating bid of $${amount} on the Web3 Monad testnet.`);
+        return '0xSimulatedTransactionHash'; // Replace with actual transaction hash
+    };
+
+    useEffect(() => {
+        // Check if Web3 provider is available on mount
+        if (typeof window !== 'undefined' && (window as any).ethereum) {
+            setHasWeb3Provider(true);
+        }
+    }, []);
+
 
     useEffect(() => {
         const fetchPlayerInfo = async () => {
@@ -184,7 +260,29 @@ const AuctionPage = () => {
         const bidDecision = await aiBiddingStrategy(biddingStrategyInput);
         if (bidDecision.bidDecision) {
           newBids[agentId] = bidDecision.bidAmount;
-          setAiAgentBids((prev) => ({ ...prev, [agentId]: bidDecision.bidAmount }));
+            // AI agent places a bid transaction
+            try {
+                // TODO: Implement the bidding transaction on the Web3 Monad testnet for AI agents.
+                // This involves signing and sending a transaction to the auction contract.
+                // const transactionHash = await bidOnAuction(bidDecision.bidAmount);
+                // setAiAgentBids((prev) => ({ ...prev, [agentId]: bidDecision.bidAmount }));
+                // toast({
+                //     title: "AI Bid Placed",
+                //     description: `${profile.agentName} has placed a bid for $${bidDecision.bidAmount}! Transaction Hash: ${transactionHash}`,
+                // });
+                setAiAgentBids((prev) => ({ ...prev, [agentId]: bidDecision.bidAmount }));
+                toast({
+                    title: "AI Bid Placed",
+                    description: `${profile.agentName} has placed a bid for $${bidDecision.bidAmount}!`,
+                });
+            } catch (error) {
+                console.error("Error placing AI bid:", error);
+                toast({
+                    title: "AI Bid Failed",
+                    description: `There was an error placing AI bid for ${profile.agentName}. Please check console.`,
+                    variant: "destructive",
+                });
+            }
         } else {
           newBids[agentId] = 0;
         }
@@ -210,11 +308,24 @@ const AuctionPage = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [aiAgentProfiles, playerInfo.basePrice, playerInfo.currentBid, playerInfo.currentBidder]);
+  }, [aiAgentProfiles, playerInfo.basePrice, playerInfo.currentBid, playerInfo.currentBidder, hasWeb3Provider, walletAddress]);
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Auction Page</h1>
+        {/* Connect Wallet Button */}
+        {!hasWeb3Provider ? (
+            <Alert variant="destructive">
+                <AlertTitle>Web3 Provider Required</AlertTitle>
+                <AlertDescription>
+                    Please install a Web3 provider like Metamask to participate in the auction.
+                </AlertDescription>
+            </Alert>
+        ) : !walletAddress ? (
+            <Button onClick={connectWallet}>Connect Wallet</Button>
+        ) : (
+            <p>Connected with wallet: {walletAddress}</p>
+        )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Player Card */}
@@ -244,7 +355,7 @@ const AuctionPage = () => {
                 value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
                 onChange={(e) => setManualBidAmount(Number(e.target.value))}
               />
-              <Button onClick={handleManualBid}>Place Bid</Button>
+              <Button onClick={handleManualBid} disabled={!hasWeb3Provider || !walletAddress}>Place Bid</Button>
             </div>
           </CardContent>
         </Card>
