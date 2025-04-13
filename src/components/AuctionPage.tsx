@@ -151,7 +151,7 @@ const AuctionPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Player Card */}
-        <Card className="auction-primary">
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle>{playerInfo.name}</CardTitle>
             <CardDescription>{playerInfo.role}</CardDescription>
@@ -174,7 +174,7 @@ const AuctionPage = () => {
         </Card>
 
         {/* Moderator Control Panel */}
-        <Card>
+        <Card className="bg-card">
           <CardHeader>
             <CardTitle>Moderator Controls</CardTitle>
             <CardDescription>Control the auction flow</CardDescription>
@@ -201,7 +201,7 @@ const AuctionPage = () => {
         <h2 className="text-xl font-bold mb-2">IPL Team Bids</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
-            <Card key={agentId}>
+            <Card key={agentId} className="bg-card">
               <CardHeader>
                 <CardTitle>{profile.agentName}</CardTitle>
                 <CardDescription>{profile.description}</CardDescription>
@@ -235,3 +235,4 @@ const AuctionPage = () => {
 };
 
 export default AuctionPage;
+
