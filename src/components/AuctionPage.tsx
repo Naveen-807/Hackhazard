@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, React } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAIAgentProfile, AIAgentProfileOutput } from '@/ai/flows/ai-agent-profiles';
@@ -14,7 +14,7 @@ import { getPlayerInfo, PlayerInfo } from "@/services/player-info";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import {useEthers, useEtherBalance} from "@usedapp/core";
-import { formatEther } from "@ethersproject/units";
+import { formatEther } from 'ethers/lib/utils';
 
 interface ModeratorControlsType {
   auctionStatus: string;
@@ -315,6 +315,7 @@ const AuctionPage = () => {
   }, [aiAgentProfiles, playerInfo?.basePrice, playerInfo?.currentBid, playerInfo?.currentBidder, account]);
 
   return (
+    <>
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Auction Page</h1>
         {/* Connect Wallet Button */}
@@ -336,7 +337,7 @@ const AuctionPage = () => {
         <Card className="bg-card">
           <CardHeader>
             <CardTitle>{playerInfo ? playerInfo.name : <Skeleton/>}</CardTitle>
-            <CardDescription>{playerInfo ? playerInfo.role : <Skeleton/></CardDescription>
+            <CardDescription>{playerInfo ? playerInfo.role : (<Skeleton/>)}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
               <Avatar className="mb-4 h-32 w-32">
@@ -428,6 +429,7 @@ const AuctionPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 
