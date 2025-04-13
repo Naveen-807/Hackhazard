@@ -327,128 +327,127 @@ const AuctionPage = () => {
   return (
     
       
+        <h1>Auction Page</h1>
         
-          Auction Page
-          {/* Connect Wallet Button */}
           {!hasWeb3Provider ? (
-            
-              Web3 Provider Required
+            <>
+              <span>Web3 Provider Required</span>
               Please install a Web3 provider like Metamask to participate in the auction.
-            
+            </>
           ) : !account ? (
             <Button onClick={connectWallet}>Connect Wallet</Button>
           ) : (
-            <p>Connected with wallet: {account} - Balance: {etherBalance ? parseFloat(formatEther(etherBalance)).toFixed(2) : "0"} ETH</p>
+            
+              Connected with wallet: {account} - Balance: {etherBalance ? parseFloat(formatEther(etherBalance)).toFixed(2) : "0"} ETH
+            
           )}
 
           
-            {/* Player Card */}
             
               
                 
-                  {playerInfo ? playerInfo.name : <Skeleton />}
-                  {playerInfo ? playerInfo.role : <Skeleton />}
+                  
+                    {playerInfo ? playerInfo.name : <Skeleton />}
+                    {playerInfo ? playerInfo.role : <Skeleton />}
+                  
+                  
+                    
+                      {playerInfo ? (
+                        
+                          <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
+                            e.currentTarget.src = "https://picsum.photos/200/300";
+                          }} />
+                          {playerInfo.name.substring(0, 2)}
+                        
+                      ) : (
+                        <Skeleton className="h-32 w-32 rounded-full" />
+                      )}
+
+                    
+                    Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton />}
+                    Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton />}
+                    Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton />}
+                    Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton />}
+                    Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton />}
+                    Time Remaining: {auctionTimer} seconds
+                    
+                      <Input
+                        type="number"
+                        placeholder="Enter your bid"
+                        className="mr-2"
+                        value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
+                        onChange={(e) => setManualBidAmount(Number(e.target.value))}
+                      />
+                      <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
+                    
+                  
                 
+
                 
                   
-                    {playerInfo ? (
+                    Moderator Controls
+                    Control the auction flow
+                  
+                  
+                    Auction Status: {moderatorControls.auctionStatus}
+                    
                       
-                        <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
-                          e.currentTarget.src = "https://picsum.photos/200/300";
-                        }} />
-                        {playerInfo.name.substring(0, 2)}
+                        Start Auction
                       
-                    ) : (
-                      <Skeleton className="h-32 w-32 rounded-full" />
-                    )}
-
-                  
-                  Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton />}
-                  Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton />}
-                  Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton />}
-                  Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton />}
-                  Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton />}
-                  Time Remaining: {auctionTimer} seconds
-                  
-                    <Input
-                      type="number"
-                      placeholder="Enter your bid"
-                      className="mr-2"
-                      value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
-                      onChange={(e) => setManualBidAmount(Number(e.target.value))}
-                    />
-                    <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
+                      
+                        Pause Auction
+                      
+                      
+                        Resume Auction
+                      
+                      
+                        End Auction
+                      
+                      
+                        Next Player
+                      
+                      
+                        Override/Freeze Auction
+                      
+                    
                   
                 
               
 
-              {/* Moderator Control Panel */}
               
+                IPL Team Bids
                 
-                  Moderator Controls
-                  Control the auction flow
-                
-                
-                  Auction Status: {moderatorControls.auctionStatus}
-                  
+                  {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
                     
-                      Start Auction
-                    
-                    
-                      Pause Auction
-                    
-                    
-                      Resume Auction
-                    
-                    
-                      End Auction
-                    
-                    
-                      Next Player
-                    
-                    
-                      Override/Freeze Auction
-                    
-                  
-                
-              
-            
-
-            {/* AI Agent Bids Display */}
-            
-              IPL Team Bids
-              
-                {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
-                  
-                    
-                      {profile.agentName}
-                      {profile.description}
-                      {profile.strategyType}
-                    
-                    
-                      Bid Amount: ${aiAgentBids[agentId] || 0}
-                    
-                  
-                ))}
-              
-            
-
-            {/* AI Player Recommendations Display */}
-            
-              AI Player Recommendations
-              {aiPlayerRecommendations.recommendations.length > 0 ? (
-                
-                  {aiPlayerRecommendations.recommendations.map((recommendation) => (
-                    
-                      {recommendation.playerId} - {recommendation.reason}
+                      
+                        {profile.agentName}
+                        {profile.description}
+                        {profile.strategyType}
+                      
+                      
+                        Bid Amount: ${aiAgentBids[agentId] || 0}
+                      
                     
                   ))}
                 
-              ) : (
-                
-                  No recommendations available.
-                
-              )}
+              
+
+              
+                AI Player Recommendations
+                {aiPlayerRecommendations.recommendations.length > 0 ? (
+                  
+                    {aiPlayerRecommendations.recommendations.map((recommendation) => (
+                      
+                        {recommendation.playerId} - {recommendation.reason}
+                      
+                    ))}
+                  
+                ) : (
+                  
+                    No recommendations available.
+                  
+                )}
+              
             
           
         
