@@ -1,1 +1,2 @@
-// Flows will be imported for their side effects in this file.
+import '@/ai/flows/player-recommendations.ts';
+import '@/ai/flows/ai-bidding-strategy.ts';
