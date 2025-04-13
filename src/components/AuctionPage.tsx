@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAIAgentProfile, AIAgentProfileOutput } from '@/ai/flows/ai-agent-profiles';
@@ -12,21 +12,16 @@ import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getPlayerInfo, PlayerInfo } from "@/services/player-info";
 import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import {useEthers, useEtherBalance} from "@usedapp/core";
+import { formatEther } from "@ethersproject/units";
 
 interface ModeratorControlsType {
   auctionStatus: string;
 }
 
 const AuctionPage = () => {
-  const [playerInfo, setPlayerInfo] = useState<PlayerInfo>({
-    name: "Loading...",
-    role: "Loading...",
-    stats: { battingAverage: 0, economy: 0 },
-    basePrice: 0,
-    currentBid: 0,
-    currentBidder: "None",
-    imageUrl: "https://picsum.photos/200/300",
-  });
+    const [playerInfo, setPlayerInfo] = useState<PlayerInfo | undefined>(undefined);
 
   const [moderatorControls, setModeratorControls] = useState<ModeratorControlsType>({
     auctionStatus: "Not Started",
@@ -65,28 +60,37 @@ const AuctionPage = () => {
     const [currentPlayerId, setCurrentPlayerId] = useState<string>("player1");
     const [walletAddress, setWalletAddress] = useState<string | null>(null);
     const [hasWeb3Provider, setHasWeb3Provider] = useState(false);
+    const { activateBrowserWallet, account, chainId, library } = useEthers();
+    const etherBalance = useEtherBalance(account);
 
 
     // Function to connect to the user's wallet
     const connectWallet = async () => {
-        // TODO: Implement Web3 provider connection logic here (e.g., using Metamask).
-        // After successful connection, set the wallet address and hasWeb3Provider to true.
-        // Example:
-        // if (window.ethereum) {
-        //   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        //   setWalletAddress(accounts[0]);
-        //   setHasWeb3Provider(true);
-        // } else {
-        //   toast({
-        //     title: "No Web3 Provider Detected",
-        //     description: "Please install Metamask or another Web3 provider.",
-        //     variant: "destructive",
-        //   });
-        // }
-        toast({
-            title: "Connect Wallet",
-            description: "Connect wallet functionality to be implemented",
-        });
+        try {
+            activateBrowserWallet();
+            if (account) {
+                setWalletAddress(account);
+                setHasWeb3Provider(true);
+                toast({
+                    title: "Wallet Connected",
+                    description: `Connected with wallet: ${account}`,
+                });
+            } else {
+                toast({
+                    title: "No Web3 Provider Detected",
+                    description: "Please install Metamask or another Web3 provider.",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            console.error("Error connecting wallet:", error);
+            toast({
+                title: "Connection Failed",
+                description: "There was an error connecting to your wallet. Please try again.",
+                variant: "destructive",
+            });
+        }
+
     };
 
 
@@ -100,7 +104,7 @@ const AuctionPage = () => {
     };
 
     const handleManualBid = async () => {
-        if (!hasWeb3Provider || !walletAddress) {
+        if (!account) {
             toast({
                 title: "Wallet Not Connected",
                 description: "Please connect your wallet to place a bid.",
@@ -109,7 +113,7 @@ const AuctionPage = () => {
             return;
         }
 
-        if (manualBidAmount > playerInfo.currentBid) {
+        if ((manualBidAmount || 0) > (playerInfo?.currentBid || 0)) {
             try {
                 // TODO: Implement the bidding transaction on the Web3 Monad testnet.
                 // This involves signing and sending a transaction to the auction contract.
@@ -125,9 +129,9 @@ const AuctionPage = () => {
                 //     description: `You have placed a bid for $${manualBidAmount}! Transaction Hash: ${transactionHash}`,
                 // });
                 setPlayerInfo((prev) => ({
-                    ...prev,
+                    ...prev!,
                     currentBid: manualBidAmount,
-                    currentBidder: "You",
+                    currentBidder: account,
                 }));
                 toast({
                     title: "Bid Placed",
@@ -225,36 +229,36 @@ const AuctionPage = () => {
             setIsTimerRunning(false);
             toast({
                 title: "Time's Up!",
-                description: `The bidding for ${playerInfo.name} is over.`,
+                description: `The bidding for ${playerInfo?.name} is over.`,
             });
             // TODO: Implement logic to sell the player to the highest bidder
             // and push the next player for bidding
         }
 
         return () => clearInterval(timerInterval);
-    }, [isTimerRunning, auctionTimer, playerInfo.name, toast]);
+    }, [isTimerRunning, auctionTimer, playerInfo?.name, toast]);
 
   useEffect(() => {
     // Simulate real-time updates and AI bidding
     const interval = setInterval(async () => {
       setPlayerInfo((prev) => ({
-        ...prev,
-        currentBid: prev.currentBid + 1000,
+        ...prev!,
+        currentBid: (prev!.currentBid || 0) + 1000,
       }));
 
       // Simulate AI bidding logic
       const agentIds = ['mumbai_indians', 'chennai_super_kings', 'royal_challengers_bangalore', 'kolkata_knight_riders'];
       const newBids: { [agentId: string]: number } = {};
 
-      for (const agentId of agentIds) {
+      for (const agentId in agentIds) {
         const profile = aiAgentProfiles[agentId];
         const biddingStrategyInput = {
           playerEvaluationScore: Math.random() * 10,
           agentStrategyType: profile.strategyType,
           teamNeedsScore: Math.random() * 10,
           remainingBudget: 500000,
-          currentBid: playerInfo.currentBid,
-          basePrice: playerInfo.basePrice,
+          currentBid: playerInfo?.currentBid || 0,
+          basePrice: playerInfo?.basePrice || 0,
         };
 
         const bidDecision = await aiBiddingStrategy(biddingStrategyInput);
@@ -289,8 +293,8 @@ const AuctionPage = () => {
       }
 
       // Find the highest bidder among AI agents
-      let highestBid = playerInfo.currentBid;
-      let highestBidder = playerInfo.currentBidder;
+      let highestBid = playerInfo?.currentBid || 0;
+      let highestBidder = playerInfo?.currentBidder || "None";
       for (const agentId in newBids) {
         if (newBids[agentId] > highestBid) {
           highestBid = newBids[agentId];
@@ -298,9 +302,9 @@ const AuctionPage = () => {
         }
       }
 
-      if (highestBid > playerInfo.currentBid) {
+      if (highestBid > (playerInfo?.currentBid || 0)) {
         setPlayerInfo((prev) => ({
-          ...prev,
+          ...prev!,
           currentBid: highestBid,
           currentBidder: highestBidder,
         }));
@@ -308,7 +312,7 @@ const AuctionPage = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [aiAgentProfiles, playerInfo.basePrice, playerInfo.currentBid, playerInfo.currentBidder, hasWeb3Provider, walletAddress]);
+  }, [aiAgentProfiles, playerInfo?.basePrice, playerInfo?.currentBid, playerInfo?.currentBidder, account]);
 
   return (
     <div className="container mx-auto p-4">
@@ -321,31 +325,38 @@ const AuctionPage = () => {
                     Please install a Web3 provider like Metamask to participate in the auction.
                 </AlertDescription>
             </Alert>
-        ) : !walletAddress ? (
+        ) : !account ? (
             <Button onClick={connectWallet}>Connect Wallet</Button>
         ) : (
-            <p>Connected with wallet: {walletAddress}</p>
+            <p>Connected with wallet: {account} - Balance: {etherBalance ? parseFloat(formatEther(etherBalance)).toFixed(2) : "0"} ETH</p>
         )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Player Card */}
         <Card className="bg-card">
           <CardHeader>
-            <CardTitle>{playerInfo.name}</CardTitle>
-            <CardDescription>{playerInfo.role}</CardDescription>
+            <CardTitle>{playerInfo ? playerInfo.name : <Skeleton/>}</CardTitle>
+            <CardDescription>{playerInfo ? playerInfo.role : <Skeleton/></CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center">
               <Avatar className="mb-4 h-32 w-32">
-                  <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
-                      e.currentTarget.src = "https://picsum.photos/200/300";
-                  }}/>
-                  <AvatarFallback>{playerInfo.name.substring(0, 2)}</AvatarFallback>
+                  {playerInfo ? (
+                      <>
+                          <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
+                              e.currentTarget.src = "https://picsum.photos/200/300";
+                          }}/>
+                          <AvatarFallback>{playerInfo.name.substring(0, 2)}</AvatarFallback>
+                      </>
+                  ) : (
+                      <Skeleton className="h-32 w-32 rounded-full"/>
+                  )}
+
               </Avatar>
-            <p>Batting Avg: {playerInfo.stats.battingAverage}</p>
-            <p>Economy: {playerInfo.stats.economy}</p>
-            <p>Base Price: ${playerInfo.basePrice}</p>
-            <p>Current Bid: ${playerInfo.currentBid}</p>
-            <p>Current Bidder: {playerInfo.currentBidder}</p>
+            <p>Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton/>}</p>
+            <p>Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton/>}</p>
+            <p>Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton/>}</p>
+            <p>Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton/>}</p>
+            <p>Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton/>}</p>
               <p>Time Remaining: {auctionTimer} seconds</p>
             <div className="flex mt-4">
               <Input
@@ -355,7 +366,7 @@ const AuctionPage = () => {
                 value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
                 onChange={(e) => setManualBidAmount(Number(e.target.value))}
               />
-              <Button onClick={handleManualBid} disabled={!hasWeb3Provider || !walletAddress}>Place Bid</Button>
+              <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
             </div>
           </CardContent>
         </Card>
