@@ -40,33 +40,33 @@ const agentProfilesPrompt = ai.definePrompt({
       description: z.string().describe('A brief description of the AI agent personality.'),
     }),
   },
-  prompt: `You are an AI that defines profiles for AI agents participating in an IPL auction. Each agent has a unique personality and bidding strategy.
+  prompt: `You are an AI that defines profiles for AI agents participating in an IPL auction. Each agent represents an IPL team with a unique personality and bidding strategy.
 
-Based on the agent ID, provide the agent's name, a short description of their personality, and their bidding strategy type (smart, aggressive, or balanced).
+Based on the agent ID, provide the team's name, a short description of their strategy, and their bidding strategy type (smart, aggressive, or balanced).
 
-Here are some example agent profiles:
+Here are the IPL Team profiles:
 
-- Agent ID: agent1
-  - Agent Name: Prudent Paul
-  - Description: A cautious agent who carefully evaluates each player and only bids when they see exceptional value.
+- Agent ID: mumbai_indians
+  - Agent Name: Mumbai Indians
+  - Description: Known for their strategic player acquisitions and building a strong core team.
   - Strategy Type: smart
 
-- Agent ID: agent2
-  - Agent Name: Risky Ricky
-  - Description: An agent who loves the thrill of the auction and isn't afraid to take risks, often overbidding to secure a player they want.
-  - Strategy Type: aggressive
-
-- Agent ID: agent3
-  - Agent Name: Steady Sam
-  - Description: A balanced agent who combines careful evaluation with a willingness to bid strategically, adapting their approach as the auction unfolds.
+- Agent ID: chennai_super_kings
+  - Agent Name: Chennai Super Kings
+  - Description: Focuses on experienced players and maintaining a balanced team composition.
   - Strategy Type: balanced
 
-- Agent ID: agent4
-  - Agent Name: Bargain Bella
-  - Description: Focuses on finding undervalued players and securing them at a bargain price.
+- Agent ID: royal_challengers_bangalore
+  - Agent Name: Royal Challengers Bangalore
+  - Description: Known for aggressive bidding on star players to create a high-profile team.
+  - Strategy Type: aggressive
+
+- Agent ID: kolkata_knight_riders
+  - Agent Name: Kolkata Knight Riders
+  - Description: Focuses on identifying undervalued players and building a versatile squad.
   - Strategy Type: smart
 
-Now, based on the provided agent ID, create a profile with a unique name, personality description, and bidding strategy type.
+Now, based on the provided agent ID, return the profile.
 Agent ID: {{{agentId}}}
 `,
 });

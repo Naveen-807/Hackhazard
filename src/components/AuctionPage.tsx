@@ -39,17 +39,17 @@ const AuctionPage = () => {
   });
 
   const [aiAgentBids, setAiAgentBids] = useState<{ [agentId: string]: number }>({
-    agent1: 0,
-    agent2: 0,
-    agent3: 0,
-    agent4: 0,
+    mumbai_indians: 0,
+    chennai_super_kings: 0,
+    royal_challengers_bangalore: 0,
+    kolkata_knight_riders: 0,
   });
 
   const [aiAgentProfiles, setAiAgentProfiles] = useState<{ [agentId: string]: AIAgentProfileOutput }>({
-    agent1: { agentName: "Loading...", strategyType: "balanced", description: "Loading..." },
-    agent2: { agentName: "Loading...", strategyType: "aggressive", description: "Loading..." },
-    agent3: { agentName: "Loading...", strategyType: "smart", description: "Loading..." },
-    agent4: { agentName: "Loading...", strategyType: "balanced", description: "Loading..." },
+    mumbai_indians: { agentName: "Loading...", strategyType: "balanced", description: "Loading..." },
+    chennai_super_kings: { agentName: "Loading...", strategyType: "balanced", description: "Loading..." },
+    royal_challengers_bangalore: { agentName: "Loading...", strategyType: "aggressive", description: "Loading..." },
+    kolkata_knight_riders: { agentName: "Loading...", strategyType: "smart", description: "Loading..." },
   });
 
   const [aiPlayerRecommendations, setAiPlayerRecommendations] = useState<PlayerRecommendationsOutput>({
@@ -63,7 +63,7 @@ const AuctionPage = () => {
 
     // Fetch AI agent profiles
     const fetchAIAgentProfiles = async () => {
-      const agentIds = ['agent1', 'agent2', 'agent3', 'agent4'];
+      const agentIds = ['mumbai_indians', 'chennai_super_kings', 'royal_challengers_bangalore', 'kolkata_knight_riders'];
       const profiles: { [agentId: string]: AIAgentProfileOutput } = {};
       for (const agentId of agentIds) {
         const profile = await getAIAgentProfile({ agentId });
@@ -100,7 +100,7 @@ const AuctionPage = () => {
       }));
 
       // Simulate AI bidding logic
-      const agentIds = ['agent1', 'agent2', 'agent3', 'agent4'];
+      const agentIds = ['mumbai_indians', 'chennai_super_kings', 'royal_challengers_bangalore', 'kolkata_knight_riders'];
       const newBids: { [agentId: string]: number } = {};
 
       for (const agentId of agentIds) {
@@ -198,7 +198,7 @@ const AuctionPage = () => {
 
       {/* AI Agent Bids Display */}
       <div className="mt-4">
-        <h2 className="text-xl font-bold mb-2">AI Agent Bids</h2>
+        <h2 className="text-xl font-bold mb-2">IPL Team Bids</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
             <Card key={agentId}>
