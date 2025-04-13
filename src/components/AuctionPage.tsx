@@ -10,32 +10,14 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
-interface PlayerInfoType {
-  name: string;
-  role: string;
-  stats: { battingAverage: number; economy: number };
-  basePrice: number;
-  currentBid: number;
-  currentBidder: string;
-  imageUrl: string;
-}
-
-interface TeamType {
-  [playerId: string]: {
-    name: string;
-    role: string;
-    stats: { battingAverage: number; economy: number };
-    imageUrl: string;
-  };
-}
+import { getPlayerInfo, PlayerInfo } from "@/services/player-info";
 
 interface ModeratorControlsType {
   auctionStatus: string;
 }
 
 const AuctionPage = () => {
-  const [playerInfo, setPlayerInfo] = useState<PlayerInfoType>({
+  const [playerInfo, setPlayerInfo] = useState<PlayerInfo>({
     name: "Loading...",
     role: "Loading...",
     stats: { battingAverage: 0, economy: 0 },
@@ -63,7 +45,7 @@ const AuctionPage = () => {
     kolkata_knight_riders: { agentName: "Kolkata Knight Riders", strategyType: "smart", description: "Focuses on identifying undervalued players and building a versatile squad." },
   });
 
-    const [teamCompositions, setTeamCompositions] = useState<{ [agentId: string]: TeamType }>({
+    const [teamCompositions, setTeamCompositions] = useState<{ [agentId: string]: { name: string; role: string; stats: { battingAverage: number; economy: number }; imageUrl: string; } }>({
         mumbai_indians: {},
         chennai_super_kings: {},
         royal_challengers_bangalore: {},
@@ -79,8 +61,9 @@ const AuctionPage = () => {
   const [manualBidAmount, setManualBidAmount] = useState<number>(0);
   const [auctionTimer, setAuctionTimer] = useState<number>(60);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
+    const [currentPlayerId, setCurrentPlayerId] = useState<string>("player1");
 
-    const startAuction = () => {
+  const startAuction = () => {
         setModeratorControls({ auctionStatus: "In Progress" });
         toast({
             title: "Auction Started",
@@ -109,6 +92,18 @@ const AuctionPage = () => {
     }
   };
 
+    useEffect(() => {
+        const fetchPlayerInfo = async () => {
+            const player = await getPlayerInfo(currentPlayerId);
+            if (player) {
+                setPlayerInfo(player);
+            } else {
+                console.error("Failed to fetch player info for ID:", currentPlayerId);
+            }
+        };
+
+        fetchPlayerInfo();
+    }, [currentPlayerId]);
 
   useEffect(() => {
     let isMounted = true; // Add a flag to track component mount status
@@ -230,7 +225,9 @@ const AuctionPage = () => {
           </CardHeader>
           <CardContent className="flex flex-col items-center">
               <Avatar className="mb-4 h-32 w-32">
-                  <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} />
+                  <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
+                      e.currentTarget.src = "https://picsum.photos/200/300";
+                  }}/>
                   <AvatarFallback>{playerInfo.name.substring(0, 2)}</AvatarFallback>
               </Avatar>
             <p>Batting Avg: {playerInfo.stats.battingAverage}</p>
