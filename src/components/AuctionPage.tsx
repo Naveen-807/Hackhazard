@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, React } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getAIAgentProfile, AIAgentProfileOutput } from '@/ai/flows/ai-agent-profiles';
@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getPlayerInfo, PlayerInfo } from "@/services/player-info";
-import {Alert, AlertDescription, AlertTitle} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatEther } from 'ethers/lib/utils';
 import { ethers } from 'ethers';
@@ -260,7 +260,7 @@ const AuctionPage = () => {
       const agentIds = ['mumbai_indians', 'chennai_super_kings', 'royal_challengers_bangalore', 'kolkata_knight_riders'];
       const newBids: { [agentId: string]: number } = {};
 
-      for (const agentId in agentIds) {
+      for (const agentId of agentIds) {
         const profile = aiAgentProfiles[agentId];
         const biddingStrategyInput = {
           playerEvaluationScore: Math.random() * 10,
@@ -322,132 +322,176 @@ const AuctionPage = () => {
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [aiAgentProfiles, playerInfo?.basePrice, playerInfo?.currentBid, playerInfo?.currentBidder, account]);
+  }, [aiAgentProfiles, playerInfo?.basePrice, playerInfo?.currentBid, playerInfo?.currentBidder, toast]);
 
   return (
     
       
-        <h1>Auction Page</h1>
         
-          {!hasWeb3Provider ? (
-            <>
-              <span>Web3 Provider Required</span>
-              Please install a Web3 provider like Metamask to participate in the auction.
-            </>
-          ) : !account ? (
-            <Button onClick={connectWallet}>Connect Wallet</Button>
-          ) : (
+          Auction Page
+          
+          
+            {!hasWeb3Provider ? (
+              
+                
+                  Web3 Provider Required
+                
+                Please install a Web3 provider like Metamask to participate in the auction.
+              
+            ) : !account ? (
+              <Button onClick={connectWallet}>Connect Wallet</Button>
+            ) : (
+              
+                
+                  Connected with wallet: {account}
+                
+                Balance: {etherBalance ? etherBalance : "0"} ETH
+              
+            )}
+          
+        
+
+        
+          
             
-              Connected with wallet: {account} - Balance: {etherBalance ? parseFloat(formatEther(etherBalance)).toFixed(2) : "0"} ETH
+              
+                {playerInfo ? playerInfo.name : <Skeleton className="h-8 w-48" />}
+              
+              
+                {playerInfo ? playerInfo.role : <Skeleton className="h-4 w-24" />}
+              
             
-          )}
+            
+              
+                
+                  {playerInfo ? (
+                    
+                      <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
+                        e.currentTarget.src = "https://picsum.photos/200/300";
+                      }} />
+                      <AvatarFallback>{playerInfo.name.substring(0, 2)}</AvatarFallback>
+                    
+                  ) : (
+                    <Skeleton className="h-32 w-32 rounded-full" />
+                  )}
+                
+
+                
+                  
+                    Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton className="h-4 w-16 inline-block" />}
+                  
+                  
+                    Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton className="h-4 w-16 inline-block" />}
+                  
+                  
+                    Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton className="h-4 w-16 inline-block" />}
+                  
+                  
+                    Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton className="h-4 w-16 inline-block" />}
+                  
+                  
+                    Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton className="h-4 w-32 inline-block" />}
+                  
+                  
+                    Time Remaining: {auctionTimer} seconds
+                  
+                  
+                    <Input
+                      type="number"
+                      placeholder="Enter your bid"
+                      className="mr-2"
+                      value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
+                      onChange={(e) => setManualBidAmount(Number(e.target.value))}
+                    />
+                    <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
+                  
+                
+              
+            
+          
 
           
             
               
+                Moderator Controls
+              
+              
+                Control the auction flow
+              
+            
+            
+              
+                Auction Status: {moderatorControls.auctionStatus}
                 
                   
-                    {playerInfo ? playerInfo.name : <Skeleton />}
-                    {playerInfo ? playerInfo.role : <Skeleton />}
+                    Start Auction
                   
                   
-                    
-                      {playerInfo ? (
-                        
-                          <AvatarImage src={playerInfo.imageUrl} alt={playerInfo.name} onError={(e) => {
-                            e.currentTarget.src = "https://picsum.photos/200/300";
-                          }} />
-                          {playerInfo.name.substring(0, 2)}
-                        
-                      ) : (
-                        <Skeleton className="h-32 w-32 rounded-full" />
-                      )}
-
-                    
-                    Batting Avg: {playerInfo ? playerInfo.stats.battingAverage : <Skeleton />}
-                    Economy: {playerInfo ? playerInfo.stats.economy : <Skeleton />}
-                    Base Price: ${playerInfo ? playerInfo.basePrice : <Skeleton />}
-                    Current Bid: ${playerInfo ? playerInfo.currentBid : <Skeleton />}
-                    Current Bidder: {playerInfo ? playerInfo.currentBidder : <Skeleton />}
-                    Time Remaining: {auctionTimer} seconds
-                    
-                      <Input
-                        type="number"
-                        placeholder="Enter your bid"
-                        className="mr-2"
-                        value={manualBidAmount === 0 ? "" : manualBidAmount.toString()}
-                        onChange={(e) => setManualBidAmount(Number(e.target.value))}
-                      />
-                      <Button onClick={handleManualBid} disabled={!account || !playerInfo}>Place Bid</Button>
-                    
-                  
-                
-
-                
-                  
-                    Moderator Controls
-                    Control the auction flow
+                    Pause Auction
                   
                   
-                    Auction Status: {moderatorControls.auctionStatus}
-                    
-                      
-                        Start Auction
-                      
-                      
-                        Pause Auction
-                      
-                      
-                        Resume Auction
-                      
-                      
-                        End Auction
-                      
-                      
-                        Next Player
-                      
-                      
-                        Override/Freeze Auction
-                      
-                    
+                    Resume Auction
+                  
+                  
+                    End Auction
+                  
+                  
+                    Next Player
+                  
+                  
+                    Override/Freeze Auction
                   
                 
               
+            
+          
+        
 
-              
-                IPL Team Bids
+        
+          
+            
+              IPL Team Bids
+            
+            
+              {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
                 
-                  {Object.entries(aiAgentProfiles).map(([agentId, profile]) => (
+                  
                     
+                      {profile.strategyType}
                       
                         {profile.agentName}
+                      
+                      
                         {profile.description}
-                        {profile.strategyType}
                       
-                      
-                        Bid Amount: ${aiAgentBids[agentId] || 0}
-                      
+                    
+                    
+                      <strong>Bid Amount: ${aiAgentBids[agentId] || 0}</strong>
+                    
+                  
+                
+              ))}
+            
+          
+
+          
+            
+              AI Player Recommendations
+            
+            
+              {aiPlayerRecommendations.recommendations.length > 0 ? (
+                
+                  {aiPlayerRecommendations.recommendations.map((recommendation, index) => (
+                    
+                      {recommendation.playerId} - {recommendation.reason}
                     
                   ))}
                 
-              
-
-              
-                AI Player Recommendations
-                {aiPlayerRecommendations.recommendations.length > 0 ? (
-                  
-                    {aiPlayerRecommendations.recommendations.map((recommendation) => (
-                      
-                        {recommendation.playerId} - {recommendation.reason}
-                      
-                    ))}
-                  
-                ) : (
-                  
-                    No recommendations available.
-                  
-                )}
-              
+              ) : (
+                
+                  No recommendations available.
+                
+              )}
             
           
         
