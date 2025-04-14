@@ -7,8 +7,8 @@
  * - AIAgentProfileOutput - The return type for the getAIAgentProfile function.
  */
 
-import {ai} from '@/ai/ai-instance';
-import {z} from 'genkit';
+import {generateText} from '@/ai/ai-instance';
+import {z} from 'zod';
 
 const AIAgentProfileInputSchema = z.object({
   agentId: z.string().describe('The ID of the AI agent.'),
@@ -22,64 +22,61 @@ const AIAgentProfileOutputSchema = z.object({
 });
 export type AIAgentProfileOutput = z.infer<typeof AIAgentProfileOutputSchema>;
 
-export async function getAIAgentProfile(input: AIAgentProfileInput): Promise<AIAgentProfileOutput> {
-  return aiAgentProfileFlow(input);
-}
+// Pre-defined team profiles to avoid unnecessary API calls
+const teamProfiles: Record<string, AIAgentProfileOutput> = {
+  mumbai_indians: {
+    agentName: "Mumbai Indians",
+    strategyType: "smart",
+    description: "Known for their strategic player acquisitions and building a strong core team."
+  },
+  chennai_super_kings: {
+    agentName: "Chennai Super Kings",
+    strategyType: "balanced",
+    description: "Focuses on experienced players and maintaining a balanced team composition."
+  },
+  royal_challengers_bangalore: {
+    agentName: "Royal Challengers Bangalore",
+    strategyType: "aggressive",
+    description: "Known for aggressive bidding on star players to create a high-profile team."
+  },
+  kolkata_knight_riders: {
+    agentName: "Kolkata Knight Riders",
+    strategyType: "smart",
+    description: "Focuses on identifying undervalued players and building a versatile squad."
+  }
+};
 
-const agentProfilesPrompt = ai.definePrompt({
-  name: 'agentProfilesPrompt',
-  input: {
-    schema: z.object({
-      agentId: z.string().describe('The ID of the AI agent.'),
-    }),
-  },
-  output: {
-    schema: z.object({
-      agentName: z.string().describe('The name of the AI agent.'),
-      strategyType: z.enum(['smart', 'aggressive', 'balanced']).describe('The bidding strategy type of the AI agent.'),
-      description: z.string().describe('A brief description of the AI agent personality.'),
-    }),
-  },
-  prompt: `You are an AI that defines profiles for AI agents participating in an IPL auction. Each agent represents an IPL team with a unique personality and bidding strategy.
+export async function getAIAgentProfile(input: AIAgentProfileInput): Promise<AIAgentProfileOutput> {
+  // Return pre-defined team profile if available
+  if (teamProfiles[input.agentId]) {
+    return teamProfiles[input.agentId];
+  }
+  
+  // If not available, generate a profile using the AI
+  const prompt = `You are an AI that defines profiles for AI agents participating in an IPL auction. Each agent represents an IPL team with a unique personality and bidding strategy.
 
 Based on the agent ID, provide the team's name, a short description of their strategy, and their bidding strategy type (smart, aggressive, or balanced).
 
-Here are the IPL Team profiles:
+The response should be in valid JSON format with the following fields:
+- agentName: string
+- strategyType: "smart" | "aggressive" | "balanced"
+- description: string
 
-- Agent ID: mumbai_indians
-  - Agent Name: Mumbai Indians
-  - Description: Known for their strategic player acquisitions and building a strong core team.
-  - Strategy Type: smart
+Agent ID: ${input.agentId}`;
 
-- Agent ID: chennai_super_kings
-  - Agent Name: Chennai Super Kings
-  - Description: Focuses on experienced players and maintaining a balanced team composition.
-  - Strategy Type: balanced
-
-- Agent ID: royal_challengers_bangalore
-  - Agent Name: Royal Challengers Bangalore
-  - Description: Known for aggressive bidding on star players to create a high-profile team.
-  - Strategy Type: aggressive
-
-- Agent ID: kolkata_knight_riders
-  - Agent Name: Kolkata Knight Riders
-  - Description: Focuses on identifying undervalued players and building a versatile squad.
-  - Strategy Type: smart
-
-Now, based on the provided agent ID, return the profile.
-Agent ID: {{{agentId}}}
-`,
-});
-
-const aiAgentProfileFlow = ai.defineFlow<
-  typeof AIAgentProfileInputSchema,
-  typeof AIAgentProfileOutputSchema
->({
-  name: 'aiAgentProfileFlow',
-  inputSchema: AIAgentProfileInputSchema,
-  outputSchema: AIAgentProfileOutputSchema,
-},
-async input => {
-  const {output} = await agentProfilesPrompt(input);
-  return output!;
-});
+  const result = await generateText(prompt);
+  
+  try {
+    // Try to parse the JSON response
+    const parsedResult = JSON.parse(result);
+    return AIAgentProfileOutputSchema.parse(parsedResult);
+  } catch (error) {
+    console.error("Error parsing AI response:", error);
+    // Return a default profile if parsing fails
+    return {
+      agentName: input.agentId,
+      strategyType: "balanced",
+      description: "A team with a balanced approach to player selection and bidding strategy."
+    };
+  }
+}
