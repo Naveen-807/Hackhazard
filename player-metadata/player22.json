@@ -1,0 +1,48 @@
+{
+  "name": "Shikhar Dhawan",
+  "description": "Feared by bowlers worldwide, Shikhar Dhawan brings explosive Opening, consistency to the pitch.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player22.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 37
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Punjab Kings"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 206
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 34.79
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 127.14
+    },
+    {
+      "trait_type": "Runs",
+      "value": 6244
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Opening, consistency"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/shikhar-dhawan"
+}

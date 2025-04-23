@@ -1,0 +1,48 @@
+{
+  "name": "Jos Buttler",
+  "description": "Lightning-fast glove work and Power hitting, opening, Jos Buttler is a game-changer.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player16.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Wicket-Keeper"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "English"
+    },
+    {
+      "trait_type": "Age",
+      "value": 32
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Rajasthan Royals"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 91
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 38.94
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 149.05
+    },
+    {
+      "trait_type": "Runs",
+      "value": 3223
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Power hitting, opening"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/jos-buttler"
+}

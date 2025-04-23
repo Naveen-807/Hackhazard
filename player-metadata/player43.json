@@ -1,0 +1,48 @@
+{
+  "name": "Wriddhiman Saha",
+  "description": "Lightning-fast glove work and Wicket-keeping, opening, Wriddhiman Saha is a game-changer.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player43.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Wicket-Keeper"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 38
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Gujarat Titans"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Uncommon"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 144
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 24.29
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 128.53
+    },
+    {
+      "trait_type": "Runs",
+      "value": 2427
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Wicket-keeping, opening"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/wriddhiman-saha"
+}

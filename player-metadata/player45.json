@@ -1,0 +1,48 @@
+{
+  "name": "Devon Conway",
+  "description": "Solid opener, left-handed. A batting powerhouse from Chennai Super Kings.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player45.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "New Zealand"
+    },
+    {
+      "trait_type": "Age",
+      "value": 31
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Chennai Super Kings"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 13
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 42.35
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 136.73
+    },
+    {
+      "trait_type": "Runs",
+      "value": 508
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Solid opener, left-handed"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/devon-conway"
+}

@@ -1,0 +1,48 @@
+{
+  "name": "Jonny Bairstow",
+  "description": "Lightning-fast glove work and Explosive batting, wicket-keeping, Jonny Bairstow is a game-changer.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player32.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Wicket-Keeper"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "English"
+    },
+    {
+      "trait_type": "Age",
+      "value": 33
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Punjab Kings"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 39
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 35.22
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 142.65
+    },
+    {
+      "trait_type": "Runs",
+      "value": 1291
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Explosive batting, wicket-keeping"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/jonny-bairstow"
+}

@@ -1,0 +1,48 @@
+{
+  "name": "Shreyas Iyer",
+  "description": "Middle-order batting, captaincy. A batting powerhouse from Kolkata Knight Riders.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player17.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 28
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Kolkata Knight Riders"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Uncommon"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 101
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 31.41
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 125.25
+    },
+    {
+      "trait_type": "Runs",
+      "value": 2776
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Middle-order batting, captaincy"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/shreyas-iyer"
+}

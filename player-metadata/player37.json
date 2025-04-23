@@ -1,0 +1,48 @@
+{
+  "name": "Ishan Kishan",
+  "description": "Power-hitting, wicket-keeping. A wicket-keeping sensation from Mumbai Indians.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player37.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Wicket-Keeper"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 24
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Mumbai Indians"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Uncommon"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 75
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 28.29
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 136.33
+    },
+    {
+      "trait_type": "Runs",
+      "value": 1870
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Power-hitting, wicket-keeping"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/ishan-kishan"
+}

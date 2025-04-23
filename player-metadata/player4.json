@@ -1,0 +1,48 @@
+{
+  "name": "MS Dhoni",
+  "description": "Finisher, captaincy, wicket-keeping. A wicket-keeping sensation from Chennai Super Kings.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player4.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Wicket-Keeper"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 41
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Chennai Super Kings"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 234
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 38.79
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 135.92
+    },
+    {
+      "trait_type": "Runs",
+      "value": 4985
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Finisher, captaincy, wicket-keeping"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/ms-dhoni"
+}

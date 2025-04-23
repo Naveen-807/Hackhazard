@@ -1,223 +1,209 @@
-import { ethers } from "ethers";
-import { connectWallet, MONAD_CONFIG } from "./monad-utils";
+import { ethers } from 'ethers';
+import type { AuctionPlayerInfo } from '../types/player';
+import { MODERATOR_ADDRESS } from './bot-wallets';
+import { getBotSigner } from './bot-wallets';
 
-// NFT Contract ABI - simplified version focused on minting and transfer
-const NFT_CONTRACT_ABI = [
-  // View functions
-  "function balanceOf(address owner) view returns (uint256)",
-  "function ownerOf(uint256 tokenId) view returns (address)",
-  "function tokenURI(uint256 tokenId) view returns (string)",
-  "function isApprovedForAll(address owner, address operator) view returns (bool)",
-  
-  // Transaction functions
-  "function mint(address to, string memory tokenURI) returns (uint256)",
-  "function transfer(address to, uint256 tokenId)",
-  "function approve(address to, uint256 tokenId)",
-  "function setApprovalForAll(address operator, bool approved)",
-  
-  // Events
-  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)",
-  "event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId)",
-  "event ApprovalForAll(address indexed owner, address indexed operator, bool approved)"
+// Import ABI from a JSON file or define it here
+// This is a simplified ABI for a standard ERC721 contract with minting capability
+const PlayerNFTABI = [
+  "function mint(address to) external returns (uint256)",
+  "function balanceOf(address owner) external view returns (uint256)",
+  "function ownerOf(uint256 tokenId) external view returns (address)",
+  "function tokenURI(uint256 tokenId) external view returns (string memory)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
 ];
 
-// IPL Player NFT Contract Address on Monad Testnet
-export const NFT_CONTRACT_ADDRESS = "0x1234567890123456789012345678901234567890"; // Replace with actual contract address
+// Configuration for NFT contract interaction
+const NFT_CONTRACT_CONFIG = {
+  address: process.env.PLAYER_NFT_CONTRACT_ADDRESS || '0x0',
+  rpcUrl: process.env.ETH_RPC_URL || 'https://sepolia.infura.io/v3/your-api-key',
+  networkId: process.env.ETH_NETWORK_ID || '11155111' // Sepolia testnet
+};
 
-export interface IPLPlayerNFT {
-  tokenId: number;
-  name: string;
-  team: string;
-  role: string;
-  basePrice: number; // in MONAD
-  imageUri: string;
-  stats: {
-    battingAvg?: number;
-    bowlingAvg?: number;
-    strikeRate?: number;
-    economy?: number;
-    matchesPlayed: number;
+/**
+ * Creates metadata for the player NFT
+ */
+function createPlayerMetadata(player: AuctionPlayerInfo): Record<string, any> {
+  return {
+    name: `${player.name} - Cricket Star`,
+    description: `Cricket player NFT for ${player.name} - ${player.role}`,
+    image: player.imageUrl || `https://api.cricketplayers.ai/player/${player.id}/image`,
+    attributes: [
+      { trait_type: 'Role', value: player.role },
+      { trait_type: 'Team', value: player.team }
+    ],
+    external_url: `https://cricketmetaverse.com/players/${player.id}`
   };
 }
 
-// Function to initialize the NFT contract
-export const getNFTContract = async (signer?: ethers.Signer) => {
+/**
+ * Uploads player metadata to IPFS (or similar decentralized storage)
+ */
+async function uploadPlayerMetadata(metadata: Record<string, any>): Promise<string> {
   try {
-    if (!signer) {
-      const walletConnection = await connectWallet();
-      if (!walletConnection.success) {
-        throw new Error(walletConnection.error || "Failed to connect wallet");
-      }
-      signer = walletConnection.signer;
-    }
+    // In production, replace this with actual IPFS upload logic
+    // For now, simulate successful upload with a mock URL
+    console.log('Uploading metadata to IPFS:', metadata);
     
-    return new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_CONTRACT_ABI, signer);
-  } catch (error: any) {
-    console.error("Error initializing NFT contract:", error);
+    // Mock IPFS hash (in production, this would be a real IPFS hash)
+    const mockIpfsHash = 'Qm' + Array(44).fill(0).map(() => 
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[
+        Math.floor(Math.random() * 62)
+      ]).join('');
+    
+    return `ipfs://${mockIpfsHash}`;
+  } catch (error) {
+    console.error('Error uploading metadata:', error);
     throw error;
   }
-};
+}
 
-// Function to mint a new IPL Player NFT
-export const mintPlayerNFT = async (
-  player: IPLPlayerNFT,
-  recipientAddress: string,
-  signer?: ethers.Signer
-): Promise<{
-  success: boolean;
-  tokenId?: number;
-  txHash?: string;
-  error?: string;
-}> => {
+/**
+ * Mints a new player NFT to the specified address
+ */
+export async function mintPlayerNFT(
+  toAddress: string, 
+  playerDetails: AuctionPlayerInfo
+): Promise<{ 
+  success: boolean; 
+  tokenId?: string; 
+  txHash?: string; 
+  error?: string 
+}> {
   try {
-    // Prepare player metadata
-    const metadata = {
-      name: player.name,
-      description: `${player.name} - ${player.role} - ${player.team}`,
-      image: player.imageUri,
-      attributes: [
-        { trait_type: "Team", value: player.team },
-        { trait_type: "Role", value: player.role },
-        { trait_type: "Base Price", value: player.basePrice.toString() },
-        { trait_type: "Matches Played", value: player.stats.matchesPlayed.toString() }
-      ]
-    };
-    
-    // Add conditional statistics based on player role
-    if (player.stats.battingAvg) {
-      metadata.attributes.push({ trait_type: "Batting Average", value: player.stats.battingAvg.toString() });
-    }
-    if (player.stats.bowlingAvg) {
-      metadata.attributes.push({ trait_type: "Bowling Average", value: player.stats.bowlingAvg.toString() });
-    }
-    if (player.stats.strikeRate) {
-      metadata.attributes.push({ trait_type: "Strike Rate", value: player.stats.strikeRate.toString() });
-    }
-    if (player.stats.economy) {
-      metadata.attributes.push({ trait_type: "Economy", value: player.stats.economy.toString() });
+    // Validate inputs
+    if (!ethers.isAddress(toAddress)) {
+      return { success: false, error: 'Invalid wallet address' };
     }
     
-    // Convert metadata to JSON and upload to IPFS (simplified for now)
-    // In a real implementation, you would upload this to IPFS or another decentralized storage
-    const tokenURI = `ipfs://QmExample/${player.name.replace(/\s+/g, '')}.json`;
-    
-    // Get the contract instance
-    const nftContract = await getNFTContract(signer);
-    
-    // Mint the NFT
-    const tx = await nftContract.mint(recipientAddress, tokenURI);
-    const receipt = await tx.wait();
-    
-    // Extract token ID from event logs (simplified)
-    const transferEvent = receipt.logs
-      .filter((log: any) => log.fragment?.name === "Transfer")
-      .map((log: any) => ({
-        tokenId: log.args[2]
-      }))[0];
-    
-    return {
-      success: true,
-      tokenId: Number(transferEvent.tokenId),
-      txHash: receipt.hash
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to mint NFT"
-    };
-  }
-};
+    if (!playerDetails || !playerDetails.id) {
+      return { success: false, error: 'Invalid player details' };
+    }
 
-// Function to get owned NFTs for an address
-export const getPlayerNFTs = async (
-  ownerAddress: string,
-  signer?: ethers.Signer
-): Promise<{
-  success: boolean;
-  nfts?: IPLPlayerNFT[];
-  error?: string;
-}> => {
-  try {
-    const nftContract = await getNFTContract(signer);
+    console.log(`Minting NFT for player ${playerDetails.name} to ${toAddress}`);
     
-    // Get balance (number of NFTs owned)
-    const balance = await nftContract.balanceOf(ownerAddress);
+    // Create and upload metadata
+    const metadata = createPlayerMetadata(playerDetails);
+    const metadataUri = await uploadPlayerMetadata(metadata);
     
-    // This is a simplified implementation
-    // In a real implementation, you would need to:
-    // 1. Get all token IDs owned by the address (requires contract enumeration or event indexing)
-    // 2. Fetch metadata for each token from its tokenURI
+    // Connect to provider
+    const provider = new ethers.JsonRpcProvider(NFT_CONTRACT_CONFIG.rpcUrl);
     
-    // Placeholder for demo
-    const nfts: IPLPlayerNFT[] = [];
-    // Normally would loop through tokens and fetch metadata
+    // Set up wallet with moderator credentials
+    const wallet = await getBotSigner(provider);
     
-    return {
-      success: true,
-      nfts
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to get NFTs"
-    };
-  }
-};
+    // Connect to contract
+    const contract = new ethers.Contract(
+      NFT_CONTRACT_CONFIG.address,
+      PlayerNFTABI,
+      wallet
+    );
 
-// Function to transfer an NFT to another address
-export const transferNFT = async (
-  tokenId: number,
-  toAddress: string,
-  signer?: ethers.Signer
-): Promise<{
-  success: boolean;
-  txHash?: string;
-  error?: string;
-}> => {
-  try {
-    const nftContract = await getNFTContract(signer);
-    
-    // Transfer the NFT
-    const tx = await nftContract.transfer(toAddress, tokenId);
-    const receipt = await tx.wait();
-    
-    return {
-      success: true,
-      txHash: receipt.hash
-    };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to transfer NFT"
-    };
-  }
-};
+    // For development/demo purposes, we can simulate successful minting
+    // Remove this conditional in production
+    if (process.env.NODE_ENV === 'development' || process.env.DEMO_MODE === 'true') {
+      const mockTokenId = Math.floor(Math.random() * 1000000).toString();
+      const mockTxHash = '0x' + Array(64).fill(0).map(() => 
+        '0123456789abcdef'[Math.floor(Math.random() * 16)]
+      ).join('');
+      
+      console.log('DEMO MODE: Simulated successful minting');
+      console.log('Token ID:', mockTokenId);
+      console.log('Transaction Hash:', mockTxHash);
+      
+      return {
+        success: true,
+        tokenId: mockTokenId,
+        txHash: mockTxHash
+      };
+    }
 
-// Function to approve an address to manage an NFT
-export const approveNFT = async (
-  tokenId: number,
-  operatorAddress: string,
-  signer?: ethers.Signer
-): Promise<{
-  success: boolean;
-  txHash?: string;
-  error?: string;
-}> => {
-  try {
-    const nftContract = await getNFTContract(signer);
+    // In production, mint the actual NFT
+    const tx = await contract.mint(toAddress);
+    await tx.wait();
     
-    // Approve the operator
-    const tx = await nftContract.approve(operatorAddress, tokenId);
-    const receipt = await tx.wait();
+    // Extract token ID from transaction receipt (implementation depends on contract events)
+    const receipt = await provider.getTransactionReceipt(tx.hash);
+    let tokenId = 'unknown';
     
+    // Parse Transfer event to get token ID
+    if (receipt && receipt.logs) {
+      // Find the Transfer event (simplified, in production use proper event parsing)
+      const transferEvent = receipt.logs.find(log => 
+        log.topics[0] === ethers.id('Transfer(address,address,uint256)')
+      );
+      
+      if (transferEvent && transferEvent.topics.length >= 4) {
+        tokenId = ethers.toBigInt(transferEvent.topics[3]).toString();
+      }
+    }
+
     return {
       success: true,
-      txHash: receipt.hash
+      tokenId,
+      txHash: tx.hash
     };
-  } catch (error: any) {
-    return {
-      success: false,
-      error: error.message || "Failed to approve NFT"
+    
+  } catch (error) {
+    console.error('Error minting NFT:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error during minting'
     };
   }
+}
+
+/**
+ * Gets an NFT's metadata by token ID
+ */
+export async function getPlayerNFTMetadata(tokenId: string): Promise<any> {
+  try {
+    const provider = new ethers.JsonRpcProvider(NFT_CONTRACT_CONFIG.rpcUrl);
+    
+    const contract = new ethers.Contract(
+      NFT_CONTRACT_CONFIG.address,
+      PlayerNFTABI,
+      provider
+    );
+    
+    // Get token URI
+    const tokenURI = await contract.tokenURI(tokenId);
+    
+    // In production, fetch and parse the actual metadata from IPFS
+    // For now, return mock data
+    return {
+      id: tokenId,
+      uri: tokenURI,
+      name: `Player #${tokenId}`,
+      attributes: {
+        role: 'All-rounder',
+        team: 'Mock Team'
+      }
+    };
+  } catch (error) {
+    console.error('Error getting NFT metadata:', error);
+    throw error;
+  }
+}
+
+/**
+ * Initialize the NFT contract with provider
+ */
+export const initializeNFTContract = async (
+  provider: ethers.Provider,
+  signer?: ethers.Signer
+): Promise<ethers.Contract> => {
+  // Use the provided signer or create a new one from config
+  const contractSigner = signer || 
+    new ethers.Wallet(NFT_CONTRACT_CONFIG.privateKey, provider);
+  
+  // Connect to contract
+  const contract = new ethers.Contract(
+    NFT_CONTRACT_CONFIG.address,
+    PlayerNFTABI,
+    contractSigner
+  );
+  
+  console.log('NFT Contract initialized');
+  return contract;
 };

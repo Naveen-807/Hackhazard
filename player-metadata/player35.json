@@ -1,0 +1,48 @@
+{
+  "name": "Shubman Gill",
+  "description": "Feared by bowlers worldwide, Shubman Gill brings explosive Technical batting, opening to the pitch.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player35.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 23
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Gujarat Titans"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Uncommon"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 74
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 32.24
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 125.67
+    },
+    {
+      "trait_type": "Runs",
+      "value": 1900
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Technical batting, opening"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/shubman-gill"
+}

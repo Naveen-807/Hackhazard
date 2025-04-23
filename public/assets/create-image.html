@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Create Image</title>
+  <script>
+    // This script creates a simple gradient blue stadium-like blur as a placeholder
+    window.onload = function() {
+      var canvas = document.getElementById('canvas');
+      var ctx = canvas.getContext('2d');
+      
+      // Create gradient
+      var grd = ctx.createLinearGradient(0, 0, 800, 600);
+      grd.addColorStop(0, '#1a365d');
+      grd.addColorStop(0.5, '#2a4365');
+      grd.addColorStop(1, '#1e3a8a');
+      
+      // Fill with gradient
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, 800, 600);
+      
+      // Add some blurred elements to simulate a stadium
+      ctx.beginPath();
+      ctx.arc(400, 300, 200, 0, 2 * Math.PI);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fill();
+      
+      // Convert to an image
+      var dataURL = canvas.toDataURL('image/jpeg');
+      document.getElementById('img').src = dataURL;
+      document.getElementById('download').href = dataURL;
+    };
+  </script>
+</head>
+<body>
+  <canvas id="canvas" width="800" height="600" style="display: none;"></canvas>
+  <img id="img" width="800" height="600" />
+  <p>Right-click on the image and select "Save Image As..." to save as cricket-stadium-blur.jpg</p>
+  <a id="download" download="cricket-stadium-blur.jpg">Or click here to download</a>
+</body>
+</html>

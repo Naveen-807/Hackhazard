@@ -1,0 +1,48 @@
+{
+  "name": "Rohit Sharma",
+  "description": "Power hitting, captaincy. A batting powerhouse from Mumbai Indians.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player2.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 35
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Mumbai Indians"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 227
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 30.3
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 130.06
+    },
+    {
+      "trait_type": "Runs",
+      "value": 5879
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Power hitting, captaincy"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/rohit-sharma"
+}

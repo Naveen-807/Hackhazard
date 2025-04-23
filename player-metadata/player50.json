@@ -1,0 +1,48 @@
+{
+  "name": "Harry Brook",
+  "description": "Feared by bowlers worldwide, Harry Brook brings explosive Attacking batting, versatility to the pitch.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player50.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "English"
+    },
+    {
+      "trait_type": "Age",
+      "value": 24
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Sunrisers Hyderabad"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Common"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 11
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 12.57
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 123.71
+    },
+    {
+      "trait_type": "Runs",
+      "value": 190
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Attacking batting, versatility"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/harry-brook"
+}

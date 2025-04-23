@@ -1,0 +1,48 @@
+{
+  "name": "Quinton de Kock",
+  "description": "Lightning-fast glove work and Opening, wicket-keeping, Quinton de Kock is a game-changer.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player21.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Wicket-Keeper"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "South African"
+    },
+    {
+      "trait_type": "Age",
+      "value": 30
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Lucknow Super Giants"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Uncommon"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 91
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 30.46
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 133.51
+    },
+    {
+      "trait_type": "Runs",
+      "value": 2764
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Opening, wicket-keeping"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/quinton-de-kock"
+}

@@ -9,6 +9,8 @@
 
 import {generateText} from '@/ai/ai-instance';
 import {z} from 'zod';
+// Import the utility function from the non-server file
+import { calculateRecommendedBid } from '@/lib/bid-utils';
 
 const AiBiddingStrategyInputSchema = z.object({
   playerEvaluationScore: z.number().describe('Score evaluating the player value from 0-10.'),
@@ -28,73 +30,93 @@ const AiBiddingStrategyOutputSchema = z.object({
 export type AiBiddingStrategyOutput = z.infer<typeof AiBiddingStrategyOutputSchema>;
 
 export async function aiBiddingStrategy(input: AiBiddingStrategyInput): Promise<AiBiddingStrategyOutput> {
-  // Simple bidding logic based on strategy type
-  const bidDecision = Math.random() > 0.5; // 50% chance to bid
-  
+  // More intelligent bidding logic based on strategy type and MONAD values (which are small)
+  // First determine if bidding makes sense based on player evaluation, budget, and team needs
+  let bidDecision = false;
   let bidAmount = input.currentBid;
   let reasoning = "";
+  
+  // Make bidding decision based on player evaluation and team needs
+  // Weight team needs more heavily to encourage bidding for needed positions
+  const playerValueScore = (input.playerEvaluationScore * 0.6) + (input.teamNeedsScore * 0.4);
+  
+  // Different strategies have different thresholds for bidding
+  // Lower thresholds to encourage more bidding
+  const bidThreshold = 
+    input.agentStrategyType === 'aggressive' ? 2.0 :  // Aggressive bids more often
+    input.agentStrategyType === 'smart' ? 3.0 :       // Smart bids when it makes sense
+    2.5;                                              // Balanced is somewhere in between
+    
+  // Decide to bid if player value exceeds threshold
+  bidDecision = playerValueScore > bidThreshold;
+  
+  // Add randomness to bidding decisions to create unpredictability
+  // 15% chance to bid even if below threshold (bidding fever)
+  // 5% chance to not bid even if above threshold (strategic waiting)
+  const randomFactor = Math.random();
+  if (!bidDecision && randomFactor < 0.15) {
+    bidDecision = true;
+    reasoning = "Decided to join the bidding despite lower player value score due to competitive auction environment.";
+  } else if (bidDecision && randomFactor > 0.95) {
+    bidDecision = false;
+    reasoning = "Strategically holding back despite player value to wait for better opportunities.";
+  }
+  
+  // Also consider budget - don't bid if it would take more than 80% of remaining budget
+  // Increased from 70% to 80% to allow more aggressive bidding
+  if (input.currentBid > (input.remainingBudget * 0.8)) {
+    bidDecision = false;
+    reasoning = `Cannot bid because current bid (${input.currentBid}) exceeds 80% of remaining budget (${input.remainingBudget}).`;
+    return { bidDecision, bidAmount, reasoning };
+  }
   
   if (bidDecision) {
     // Calculate bid increment based on strategy type
     const incrementPercentage = 
-      input.agentStrategyType === 'aggressive' ? 0.2 : 
-      input.agentStrategyType === 'smart' ? 0.1 : 0.15;
+      input.agentStrategyType === 'aggressive' ? 0.25 : // Aggressive bids 25% more
+      input.agentStrategyType === 'smart' ? 0.12 :      // Smart bids 12% more
+      0.18;                                             // Balanced bids 18% more
     
-    // Calculate bid increment with some randomness
+    // Enhanced increment calculation with greater randomness for more unpredictable bidding
+    // Higher minimum increment to make bidding move faster
     const increment = Math.max(
-      10000, // Minimum increment
-      Math.floor(input.currentBid * incrementPercentage * (0.8 + Math.random() * 0.4))
+      0.0003, // Increased minimum increment for faster bidding
+      input.currentBid * incrementPercentage * (0.7 + Math.random() * 0.6)
     );
     
-    bidAmount = input.currentBid + increment;
+    // Round to 5 decimal places for MONAD
+    bidAmount = Math.round((input.currentBid + increment) * 100000) / 100000;
     
     // Ensure bid doesn't exceed budget
     if (bidAmount > input.remainingBudget) {
-      bidAmount = input.remainingBudget;
+      bidAmount = Math.round(input.remainingBudget * 0.95 * 100000) / 100000; // Use 95% of budget max
     }
     
-    reasoning = `Decided to bid ${bidAmount} based on ${input.agentStrategyType} strategy. Player evaluation: ${input.playerEvaluationScore}/10, team needs: ${input.teamNeedsScore}/10.`;
+    // Add chance of overbidding for high-value players
+    if (playerValueScore > 7.5 && input.agentStrategyType === 'aggressive' && Math.random() > 0.7) {
+      // Make a much larger jump in bid to try to secure the player
+      const bigIncrement = input.currentBid * 0.4 * (0.8 + Math.random() * 0.4);
+      bidAmount = Math.round((input.currentBid + bigIncrement) * 100000) / 100000;
+      
+      // Still ensure we don't exceed budget
+      if (bidAmount > input.remainingBudget) {
+        bidAmount = Math.round(input.remainingBudget * 0.95 * 100000) / 100000;
+      }
+      
+      reasoning = `Aggressive overbid of ${bidAmount} to secure high-value player (score: ${playerValueScore.toFixed(1)}/10)`;
+    } else {
+      reasoning = `Decided to bid ${bidAmount} based on ${input.agentStrategyType} strategy. Player value score: ${playerValueScore.toFixed(1)}/10 exceeds threshold of ${bidThreshold}.`;
+    }
   } else {
-    reasoning = `Decided not to bid because current bid is too high or player doesn't meet team requirements. Current bid: ${input.currentBid}, player evaluation: ${input.playerEvaluationScore}/10.`;
+    reasoning = `Decided not to bid because player value score (${playerValueScore.toFixed(1)}/10) is below threshold (${bidThreshold}) or current bid is too high.`;
   }
+  
+  console.log(`AI Bidding Decision: ${bidDecision ? 'YES' : 'NO'}, Amount: ${bidAmount}, Strategy: ${input.agentStrategyType}, Reasoning: ${reasoning}`);
   
   return {
     bidDecision,
     bidAmount,
     reasoning
   };
-  
-  // For a more sophisticated approach using AI (currently disabled to save API calls):
-  /*
-  const prompt = `You are an AI that makes bidding decisions for IPL teams in a player auction.
-  
-  Based on the following information, decide whether to bid and how much:
-  - Player Evaluation Score (0-10): ${input.playerEvaluationScore}
-  - Agent Strategy Type: ${input.agentStrategyType}
-  - Team Needs Score (0-10): ${input.teamNeedsScore}
-  - Remaining Budget: $${input.remainingBudget}
-  - Current Bid: $${input.currentBid}
-  - Base Price: $${input.basePrice}
-  
-  The response should be in valid JSON format with the following fields:
-  - bidDecision: boolean (whether to bid or not)
-  - bidAmount: number (the amount to bid if bidding)
-  - reasoning: string (explanation for the decision)
-  `;
-
-  const result = await generateText(prompt);
-  
-  try {
-    const parsedResult = JSON.parse(result);
-    return AiBiddingStrategyOutputSchema.parse(parsedResult);
-  } catch (error) {
-    console.error("Error parsing AI response:", error);
-    return {
-      bidDecision: false,
-      bidAmount: input.currentBid,
-      reasoning: "Unable to determine a bidding strategy due to processing error."
-    };
-  }
-  */
 }
 

@@ -1,0 +1,48 @@
+{
+  "name": "David Warner",
+  "description": "David Warner - The run machine of Delhi Capitals.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player10.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Australian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 36
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Delhi Capitals"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 162
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 41.2
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 139.97
+    },
+    {
+      "trait_type": "Runs",
+      "value": 5881
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Opening batsman, leadership"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/david-warner"
+}

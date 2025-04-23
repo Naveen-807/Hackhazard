@@ -9,7 +9,7 @@ export const MONAD_CONFIG = {
     symbol: "MON",
     decimals: 18
   },
-  rpcUrls: ["https://testnet-rpc.monad.xyz"],
+  rpcUrls: ["https://rpc.ankr.com/monad_testnet", "https://testnet-rpc.monad.xyz"],
   blockExplorerUrls: ["https://testnet.monadexplorer.com"]
 };
 
@@ -31,7 +31,7 @@ export const formatAddress = (address: string): string => {
   return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
 };
 
-// Function to connect to Monad wallet via MetaMask
+// Function to connect to Monad wallet via MetaMask - this version is enhanced with better error handling
 export const connectWallet = async (): Promise<{
   success: boolean;
   address?: string;
@@ -40,20 +40,36 @@ export const connectWallet = async (): Promise<{
   error?: string;
 }> => {
   try {
-    // Check if MetaMask is installed
-    if (!window.ethereum) {
+    console.log("Connecting to wallet via enhanced connectWallet...");
+    
+    // Check if running in browser and MetaMask is installed
+    if (typeof window === 'undefined' || !window.ethereum) {
+      console.error("MetaMask not detected");
       return {
         success: false,
         error: "MetaMask not installed. Please install MetaMask to use this application."
       };
     }
 
-    // Request account access
-    const accounts = await window.ethereum.request({ 
-      method: "eth_requestAccounts" 
-    });
+    // Request account access with better error handling
+    let accounts;
+    try {
+      accounts = await window.ethereum.request({ 
+        method: "eth_requestAccounts" 
+      }).catch((err: any) => {
+        console.error("User rejected the request", err);
+        throw new Error(err?.message || "Request to connect wallet was rejected. Please try again.");
+      });
+    } catch (requestError: any) {
+      console.error("Error requesting accounts:", requestError);
+      return {
+        success: false,
+        error: requestError.message || "Failed to connect to MetaMask. Please make sure MetaMask is unlocked."
+      };
+    }
     
     if (!accounts || accounts.length === 0) {
+      console.error("No accounts returned");
       return {
         success: false,
         error: "No accounts found. Please unlock MetaMask and try again."
@@ -61,56 +77,125 @@ export const connectWallet = async (): Promise<{
     }
     
     const address = accounts[0];
+    console.log("Connected to wallet address:", address);
     
     // Create provider and signer
     const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
     
     // Check if connected to Monad Testnet
-    const network = await provider.getNetwork();
-    
-    if (network.chainId !== BigInt(MONAD_CONFIG.chainId)) {
-      // Prompt user to switch to Monad Testnet
-      try {
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: `0x${MONAD_CONFIG.chainId.toString(16)}` }]
-        });
-      } catch (switchError: any) {
-        // If chain hasn't been added to MetaMask, add it
-        if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [
-              {
-                chainId: `0x${MONAD_CONFIG.chainId.toString(16)}`,
-                chainName: MONAD_CONFIG.chainName,
-                nativeCurrency: MONAD_CONFIG.nativeCurrency,
-                rpcUrls: MONAD_CONFIG.rpcUrls,
-                blockExplorerUrls: MONAD_CONFIG.blockExplorerUrls
-              }
-            ]
-          });
-        } else {
-          return {
-            success: false,
-            error: "Failed to switch to Monad Testnet. Please switch manually."
-          };
-        }
-      }
-      
-      // Refresh provider and signer after network switch
-      const updatedProvider = new ethers.BrowserProvider(window.ethereum);
-      const updatedSigner = await updatedProvider.getSigner();
-      
+    let network;
+    try {
+      network = await provider.getNetwork();
+      console.log("Current network:", network.name, network.chainId.toString());
+    } catch (networkError) {
+      console.error("Error getting network:", networkError);
       return {
-        success: true,
-        address,
-        provider: updatedProvider,
-        signer: updatedSigner
+        success: false,
+        error: "Could not determine current network. Please check your wallet connection."
       };
     }
     
+    // Create signer
+    let signer;
+    try {
+      signer = await provider.getSigner();
+    } catch (signerError) {
+      console.error("Error getting signer:", signerError);
+      return {
+        success: false,
+        error: "Could not get a signer. Please check your wallet connection."
+      };
+    }
+    
+    // Convert chainId to hex format with 0x prefix
+    const chainIdHex = "0x" + MONAD_CONFIG.chainId.toString(16);
+    
+    if (network.chainId !== BigInt(MONAD_CONFIG.chainId)) {
+      console.log("Not connected to Monad Testnet. Attempting to switch...");
+      
+      try {
+        // Try switching to the network first (if it already exists in MetaMask)
+        console.log("Attempting to switch to Monad Testnet chain ID:", chainIdHex);
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: chainIdHex }]
+          });
+          console.log("Successfully switched to Monad Testnet");
+        } catch (switchError: any) {
+          console.log("Switch error:", switchError.code, switchError.message);
+          
+          // If error code 4902, network doesn't exist yet, so add it
+          if (switchError.code === 4902 || switchError.message.includes("wallet_addEthereumChain")) {
+            console.log("Network doesn't exist in MetaMask, adding it now...");
+            try {
+              await window.ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [{
+                  chainId: chainIdHex,
+                  chainName: MONAD_CONFIG.chainName,
+                  nativeCurrency: MONAD_CONFIG.nativeCurrency,
+                  rpcUrls: MONAD_CONFIG.rpcUrls,
+                  blockExplorerUrls: MONAD_CONFIG.blockExplorerUrls
+                }]
+              });
+              console.log("Successfully added Monad Testnet to MetaMask");
+            } catch (addError) {
+              console.error("Failed to add network:", addError);
+              return {
+                success: false,
+                error: "Failed to add network automatically. Please add it manually in MetaMask."
+              };
+            }
+          } else {
+            // User rejected request or other error
+            console.error("User rejected network switch or other error:", switchError);
+            return {
+              success: false,
+              error: "Please manually switch to Monad Testnet in your wallet."
+            };
+          }
+        }
+        
+        // Give MetaMask a moment to process the network change
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
+        // Refresh provider and signer after network switch
+        console.log("Refreshing provider and signer after network change");
+        const updatedProvider = new ethers.BrowserProvider(window.ethereum);
+        
+        // Check if we're connected to the right network
+        const updatedNetwork = await updatedProvider.getNetwork();
+        console.log("Updated network after switch:", updatedNetwork.name, updatedNetwork.chainId.toString());
+        
+        if (updatedNetwork.chainId !== BigInt(MONAD_CONFIG.chainId)) {
+          console.error("Failed to switch networks: Still on incorrect network");
+          return {
+            success: false,
+            error: "Failed to switch to Monad Testnet. Please try switching manually."
+          };
+        }
+        
+        const updatedSigner = await updatedProvider.getSigner();
+        
+        console.log("Successfully connected to Monad Testnet");
+        return {
+          success: true,
+          address,
+          provider: updatedProvider,
+          signer: updatedSigner
+        };
+      } catch (error: any) {
+        console.error("Error connecting to Monad network:", error);
+        return {
+          success: false,
+          error: "Failed to connect to Monad network: " + 
+                (error.message || "Unknown error")
+        };
+      }
+    }
+    
+    console.log("Already connected to Monad Testnet");
     return {
       success: true,
       address,
@@ -118,6 +203,7 @@ export const connectWallet = async (): Promise<{
       signer
     };
   } catch (error: any) {
+    console.error("Wallet connection error:", error);
     return {
       success: false,
       error: error.message || "Failed to connect to wallet"
@@ -145,19 +231,30 @@ export const connectToMonadTestnet = async (): Promise<{
     console.log("Connecting to Monad Testnet...");
     
     // Check if MetaMask is installed
-    if (!window.ethereum) {
+    if (typeof window === 'undefined' || !window.ethereum) {
+      console.error("MetaMask not detected");
       return {
         success: false,
         error: "MetaMask not installed. Please install MetaMask to use this application."
       };
     }
 
-    // Request account access
-    const accounts = await window.ethereum.request({ 
-      method: "eth_requestAccounts" 
-    });
+    // Request account access with explicit error handling
+    let accounts;
+    try {
+      accounts = await window.ethereum.request({ 
+        method: "eth_requestAccounts" 
+      });
+    } catch (requestError) {
+      console.error("Error requesting accounts:", requestError);
+      return {
+        success: false,
+        error: "Failed to connect to MetaMask. Please make sure MetaMask is unlocked."
+      };
+    }
     
     if (!accounts || accounts.length === 0) {
+      console.error("No accounts returned");
       return {
         success: false,
         error: "No accounts found. Please unlock MetaMask and try again."
@@ -194,24 +291,38 @@ export const connectToMonadTestnet = async (): Promise<{
           console.log("Switch error:", switchError.code, switchError.message);
           
           // If error code 4902, network doesn't exist yet, so add it
-          if (switchError.code === 4902) {
+          if (switchError.code === 4902 || switchError.message.includes("wallet_addEthereumChain")) {
             console.log("Network doesn't exist in MetaMask, adding it now...");
-            await window.ethereum.request({
-              method: "wallet_addEthereumChain",
-              params: [
-                {
+            try {
+              await window.ethereum.request({
+                method: "wallet_addEthereumChain",
+                params: [{
                   chainId: chainIdHex,
                   chainName: MONAD_CONFIG.chainName,
                   nativeCurrency: MONAD_CONFIG.nativeCurrency,
                   rpcUrls: MONAD_CONFIG.rpcUrls,
                   blockExplorerUrls: MONAD_CONFIG.blockExplorerUrls
-                }
-              ]
-            });
-            console.log("Successfully added Monad Testnet to MetaMask");
+                }]
+              });
+              console.log("Successfully added Monad Testnet to MetaMask");
+            } catch (addError) {
+              console.error("Failed to add network:", addError);
+              return {
+                success: false,
+                needsManualNetworkConfig: true,
+                networkDetails: {
+                  chainName: MONAD_CONFIG.chainName,
+                  rpcUrl: MONAD_CONFIG.rpcUrls[0],
+                  chainId: MONAD_CONFIG.chainId,
+                  symbol: MONAD_CONFIG.nativeCurrency.symbol,
+                  decimals: MONAD_CONFIG.nativeCurrency.decimals
+                },
+                error: "Failed to add network automatically. Please add it manually in MetaMask."
+              };
+            }
           } else {
-            // If we can't automatically add the network, provide details for manual setup
-            console.log("Failed to add network automatically, will provide manual config");
+            // User rejected request or other error
+            console.error("User rejected network switch or other error:", switchError);
             return {
               success: false,
               needsManualNetworkConfig: true,
@@ -222,26 +333,31 @@ export const connectToMonadTestnet = async (): Promise<{
                 symbol: MONAD_CONFIG.nativeCurrency.symbol,
                 decimals: MONAD_CONFIG.nativeCurrency.decimals
               },
-              error: "Please add the network manually in MetaMask."
+              error: "Please manually switch to Monad Testnet in your wallet."
             };
           }
         }
         
+        // Give MetaMask a moment to process the network change
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        
         // Refresh provider and signer after network switch
         console.log("Refreshing provider and signer after network change");
         const updatedProvider = new ethers.BrowserProvider(window.ethereum);
-        const updatedSigner = await updatedProvider.getSigner();
         
-        // Verify we're now on the correct network
+        // Check if we're connected to the right network
         const updatedNetwork = await updatedProvider.getNetwork();
         console.log("Updated network after switch:", updatedNetwork.name, updatedNetwork.chainId.toString());
         
         if (updatedNetwork.chainId !== BigInt(MONAD_CONFIG.chainId)) {
+          console.error("Failed to switch networks: Still on incorrect network");
           return {
             success: false,
-            error: "Failed to switch to Monad Testnet after adding it."
+            error: "Failed to switch to Monad Testnet. Please try switching manually."
           };
         }
+        
+        const updatedSigner = await updatedProvider.getSigner();
         
         console.log("Successfully connected to Monad Testnet");
         return {
@@ -376,9 +492,10 @@ export const sendModeratedTransaction = async (
     // Add transaction data for NFT minting
     let data = "0x"; // Empty data for regular token transfers
     
-    // If this is a bid transaction, use regular transfer
-    // If this is an NFT minting transaction, add NFT minting data
-    const isNftMint = toAddress.toLowerCase() !== moderatorAddress.toLowerCase();
+    // FIXED: Only AI bots should go to the moderator wallet
+    // If toAddress IS the moderator address, it's a regular bid transaction
+    // If toAddress is NOT the moderator address, it's an NFT minting transaction
+    const isNftMint = toAddress.toLowerCase() === moderatorAddress.toLowerCase();
     
     if (isNftMint) {
       // This would be replaced with actual NFT contract interaction in production
@@ -429,10 +546,25 @@ export const connectAuctionWallet = async (): Promise<{
   try {
     console.log("Connecting MetaMask wallet for auction transactions...");
     
+    // Check if MetaMask is installed
+    if (typeof window === 'undefined' || !window.ethereum) {
+      console.error("MetaMask not detected");
+      return {
+        success: false,
+        error: "MetaMask not installed. Please install MetaMask to participate in the auction."
+      };
+    }
+
     // First, connect to Monad Testnet
     const monadConnection = await connectToMonadTestnet();
     
     if (!monadConnection.success) {
+      // Handle the case where network configuration might be needed
+      if (monadConnection.needsManualNetworkConfig && monadConnection.networkDetails) {
+        console.warn("Manual network configuration needed", monadConnection.networkDetails);
+        // The error message is already set in the monadConnection object
+      }
+      
       return {
         success: false,
         error: monadConnection.error || "Failed to connect to Monad Testnet"
@@ -447,31 +579,43 @@ export const connectAuctionWallet = async (): Promise<{
       };
     }
     
-    // Get current balance
-    const balanceWei = await monadConnection.provider.getBalance(monadConnection.address);
-    const balance = formatMonadAmount(balanceWei);
-    
-    console.log(`Connected to auction wallet with address: ${monadConnection.address}`);
-    console.log(`Current balance: ${balance} MON`);
-    
-    // Check if the balance is sufficient for transaction fees
-    const { sufficient, minimumRequired } = await checkSufficientGasFunds(
-      monadConnection.provider,
-      monadConnection.address
-    );
-    
-    if (!sufficient) {
-      console.warn(`Wallet has insufficient funds for transaction fees. Balance: ${balance} MON, minimum required: ${minimumRequired} MON`);
+    try {
+      // Get current balance
+      const balanceWei = await monadConnection.provider.getBalance(monadConnection.address);
+      const balance = formatMonadAmount(balanceWei);
+      
+      console.log(`Connected to auction wallet with address: ${monadConnection.address}`);
+      console.log(`Current balance: ${balance} MON`);
+      
+      // Check if the balance is sufficient for transaction fees
+      const { sufficient, minimumRequired } = await checkSufficientGasFunds(
+        monadConnection.provider,
+        monadConnection.address
+      );
+      
+      if (!sufficient) {
+        console.warn(`Wallet has insufficient funds for transaction fees. Balance: ${balance} MON, minimum required: ${minimumRequired} MON`);
+      }
+      
+      // Return the connection info
+      return {
+        success: true,
+        address: monadConnection.address,
+        signer: monadConnection.signer,
+        provider: monadConnection.provider,
+        balance
+      };
+    } catch (balanceError) {
+      console.error("Error fetching balance:", balanceError);
+      // Still return success since we connected successfully, just couldn't fetch balance
+      return {
+        success: true,
+        address: monadConnection.address,
+        signer: monadConnection.signer,
+        provider: monadConnection.provider,
+        balance: "0" // Default value when balance fetch fails
+      };
     }
-    
-    // Return the connection info
-    return {
-      success: true,
-      address: monadConnection.address,
-      signer: monadConnection.signer,
-      provider: monadConnection.provider,
-      balance
-    };
   } catch (error: any) {
     console.error("Error connecting auction wallet:", error);
     return {

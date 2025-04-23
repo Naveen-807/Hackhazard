@@ -1,0 +1,48 @@
+{
+  "name": "Nicholas Pooran",
+  "description": "Nicholas Pooran - The safe hands behind the stumps from Lucknow Super Giants.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player27.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Wicket-Keeper"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "West Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 27
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Lucknow Super Giants"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 57
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 26.06
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 150.07
+    },
+    {
+      "trait_type": "Runs",
+      "value": 1270
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Power hitting, wicket-keeping"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/nicholas-pooran"
+}

@@ -1,0 +1,48 @@
+{
+  "name": "Virat Kohli",
+  "description": "Virat Kohli - The run machine of Royal Challengers Bangalore.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player1.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 33
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Royal Challengers Bangalore"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Epic"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 223
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 37.97
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 130.73
+    },
+    {
+      "trait_type": "Runs",
+      "value": 6624
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Aggressive batting, chase master"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/virat-kohli"
+}

@@ -1,0 +1,48 @@
+{
+  "name": "Tilak Varma",
+  "description": "Feared by bowlers worldwide, Tilak Varma brings explosive Left-handed, middle-order to the pitch.",
+  "image": "ipfs://bafybeiatidluuy53putefabpk3ps622rdpscfcuva4jssy35n2cbqntrge/player62.png",
+  "attributes": [
+    {
+      "trait_type": "Role",
+      "value": "Batsman"
+    },
+    {
+      "trait_type": "Nationality",
+      "value": "Indian"
+    },
+    {
+      "trait_type": "Age",
+      "value": 20
+    },
+    {
+      "trait_type": "Previous Team",
+      "value": "Mumbai Indians"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Rare"
+    },
+    {
+      "trait_type": "Matches",
+      "value": 25
+    },
+    {
+      "trait_type": "Batting Average",
+      "value": 36.52
+    },
+    {
+      "trait_type": "Strike Rate",
+      "value": 144.59
+    },
+    {
+      "trait_type": "Runs",
+      "value": 740
+    },
+    {
+      "trait_type": "Specialty",
+      "value": "Left-handed, middle-order"
+    }
+  ],
+  "external_url": "https://myiplgame.com/player/tilak-varma"
+}
