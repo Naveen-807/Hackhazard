@@ -163,15 +163,17 @@ async function payModeratorFee(
 // Helper function to get bot wallet signer
 async function getBotWalletSigner(provider: ethers.Provider, botName: string): Promise<ethers.Signer | null> {
   try {
-    // In production, this would use the actual bot wallet
-    // For this demo, we're using predefined wallets
-    const botWallet = BOT_WALLETS.find(wallet => wallet.name === botName);
+    // Get the bot wallet from our predefined wallets
+    const botWallet = getBotWalletByName(botName);
     if (!botWallet || !botWallet.privateKey) {
       console.error(`Bot wallet or private key not found for: ${botName}`);
       return null;
     }
 
-    return new ethers.Wallet(botWallet.privateKey, provider);
+    // Create a direct wallet instance with the private key
+    const wallet = new ethers.Wallet(botWallet.privateKey);
+    // Connect the wallet to the provider
+    return wallet.connect(provider);
   } catch (error) {
     console.error(`Error getting bot wallet signer for ${botName}:`, error);
     return null;

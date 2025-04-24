@@ -129,8 +129,17 @@ export const BOT_PAYMENT_CONTRACT_ABI = [
 const finalizedAuctions = new Map();
 
 // Check if an address belongs to an AI bot
-export const isAIBotAddress = (address: string): boolean => {
-  return BOT_WALLETS.some(bot => bot.address.toLowerCase() === address.toLowerCase());
+export const isAIBotAddress = (address: string | null | undefined): boolean => {
+  // Return false for null or undefined addresses
+  if (!address) return false;
+  
+  // Normalize address for case-insensitive comparison
+  const normalizedAddress = address.toLowerCase();
+  
+  // Check against known bot wallets
+  return BOT_WALLETS.some(bot => 
+    bot.address.toLowerCase() === normalizedAddress
+  );
 };
 
 /**
@@ -286,7 +295,12 @@ export const getAuctionDetails = async (contract: AuctionContract, auctionId: st
     // Check if auction has ended
     const now = Math.floor(Date.now() / 1000);
     if (auction.status === "active" && auction.endTime < now) {
-      auction.status = "ended";
+      // FIXED: Set status correctly based on whether there's a highest bidder
+      if (auction.currentHighestBidder) {
+        auction.status = "ended";
+      } else {
+        auction.status = "unsold";
+      }
       localStorage.setItem("auctions", JSON.stringify(auctions));
     }
     

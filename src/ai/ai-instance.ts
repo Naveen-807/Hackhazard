@@ -2,7 +2,7 @@ import { OpenAI } from 'openai';
 import { z } from 'zod';
 
 // Flag to use mock data when API key is invalid
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = process.env.GROQ_API_KEY ? false : true;
 
 // Create an OpenAI compatible client but point it to Groq's API
 export const ai = new OpenAI({
@@ -30,6 +30,7 @@ export async function generateText(prompt: string) {
   }
 
   try {
+    console.log('Generating text with Groq model for prompt:', prompt.substring(0, 50) + '...');
     const response = await ai.chat.completions.create({
       model: 'llama3-70b-8192',
       messages: [{ role: 'user', content: prompt }],
@@ -50,13 +51,15 @@ export async function generateText(prompt: string) {
         "strategicAdvice": "Consider your remaining budget before placing higher bids."
       }`;
     }
-    return '';
+    
+    // General fallback
+    return 'Unable to generate response. Please try again later.';
   }
 }
 
 /**
  * Function to generate bidding suggestions using Groq's LLM
- * This provides faster response times which is critical during live auctions
+ * This provides faster responses which is critical during live auctions
  */
 export async function generateBiddingSuggestion(
   playerName: string,
@@ -83,7 +86,7 @@ export async function generateBiddingSuggestion(
   }
 
   try {
-    const prompt = `You are an expert cricket auction bidding assistant. Give a short, concise bidding suggestion for:
+    const prompt = `You are an expert cricket auction bidding assistant. Give a concise bidding suggestion for:
     
 Player: ${playerName}
 Role: ${playerRole}
@@ -96,6 +99,7 @@ Provide a brief analysis and suggest:
 1. Whether to bid
 2. A recommended bid amount
 3. A short reason why
+4. A quick strategic tip
 
 Format your response as a concise JSON:
 {
@@ -139,119 +143,122 @@ Format your response as a concise JSON:
 }
 
 // Manual Bidding Recommendation Input Schema
-export const ManualBiddingRecommendationInputSchema = z.object({
-  playerName: z.string().describe('The name of the player being auctioned'),
-  playerRole: z.string().describe('The role of the player (e.g., Batsman, Bowler, All-rounder, Wicket-keeper)'),
-  playerStats: z.object({
-    battingAverage: z.number().optional().describe('Player batting average'),
-    strikeRate: z.number().optional().describe('Player strike rate'),
-    wickets: z.number().optional().describe('Number of wickets taken'),
-    economy: z.number().optional().describe('Bowling economy rate'),
-    matches: z.number().optional().describe('Number of matches played'),
-  }).optional().describe('Player statistics'),
-  currentBid: z.number().describe('Current highest bid in the auction'),
-  remainingBudget: z.number().describe('User\'s remaining budget for acquisitions'),
-  teamNeeds: z.string().describe('Description of the team\'s current needs'),
-  bidHistory: z.array(
-    z.object({
-      playerName: z.string(),
-      bidAmount: z.number(),
-      role: z.string()
-    })
-  ).optional().describe('History of previous bids by the user')
+const ManualBiddingRecommendationInputSchema = z.object({
+  player: z.object({
+    name: z.string(),
+    role: z.string().optional(),
+    basePrice: z.number().optional(),
+    stats: z.any().optional(),
+  }),
+  currentBid: z.number(),
+  remainingBudget: z.number(),
+  teamNeeds: z.string().optional(),
 });
 
-export type ManualBiddingRecommendationInput = z.infer<typeof ManualBiddingRecommendationInputSchema>;
+// Defining the types exported from the schema
+export type ManualBiddingRecommendationInput = {
+  playerName: string;
+  playerRole: string;
+  playerStats?: any;
+  currentBid: number;
+  remainingBudget: number;
+  teamNeeds?: string;
+  bidHistory?: any[];
+};
 
-// Manual Bidding Recommendation Output Schema
-export const ManualBiddingRecommendationOutputSchema = z.object({
-  shouldBid: z.boolean().describe('Whether the user should place a bid'),
-  recommendedBidAmount: z.number().describe('Recommended bid amount if shouldBid is true'),
-  confidence: z.number().describe('Confidence level in the recommendation (1-10)'),
-  reasoning: z.string().describe('Reasoning behind the recommendation'),
-  playerValueAssessment: z.string().describe('Assessment of the player\'s value relative to current bid'),
-  strategicAdvice: z.string().describe('Strategic advice for the auction'),
-});
-
-export type ManualBiddingRecommendationOutput = z.infer<typeof ManualBiddingRecommendationOutputSchema>;
+export type ManualBiddingRecommendationOutput = {
+  shouldBid: boolean;
+  recommendedAmount: number;
+  confidence?: number;
+  reasoning?: string;
+  reason?: string;
+  playerValueAssessment?: string;
+  strategicAdvice?: string;
+  quickTip?: string;
+};
 
 /**
- * Provides AI-powered recommendations for manual bidding during an auction
- * 
- * @param input Information about the player, current bid, and team needs
- * @returns Recommendation on whether to bid and suggested bid amount
+ * Function to get manual bidding recommendations
+ * This is a wrapper around generateBiddingSuggestion with type transformations
  */
 export async function getManualBiddingRecommendation(
   input: ManualBiddingRecommendationInput
 ): Promise<ManualBiddingRecommendationOutput> {
   try {
-    // Create a prompt for the AI with all the available information
-    const prompt = `You are an expert cricket auction strategist advising a team manager during an IPL auction.
+    const suggestion = await generateBiddingSuggestion(
+      input.playerName,
+      input.playerRole,
+      input.currentBid,
+      input.playerStats?.basePrice || input.currentBid,
+      input.remainingBudget,
+      input.playerStats
+    );
     
-Player being auctioned: ${input.playerName} (${input.playerRole})
-Current highest bid: ${input.currentBid}
-Your remaining budget: ${input.remainingBudget}
-Your team needs: ${input.teamNeeds}
-
-${input.playerStats ? `Player statistics:
-- Batting average: ${input.playerStats.battingAverage || 'N/A'}
-- Strike rate: ${input.playerStats.strikeRate || 'N/A'}
-- Wickets: ${input.playerStats.wickets || 'N/A'}
-- Economy rate: ${input.playerStats.economy || 'N/A'}
-- Matches played: ${input.playerStats.matches || 'N/A'}` : 'No detailed statistics available for this player.'}
-
-${input.bidHistory && input.bidHistory.length > 0 ? `Your previous successful bids:
-${input.bidHistory.map(bid => `- ${bid.playerName} (${bid.role}): ${bid.bidAmount}`).join('\n')}` : 'No previous bids recorded.'}
-
-Based on all available information, provide:
-1. Should the team bid for this player? (yes/no)
-2. If yes, what would be the recommended bid amount?
-3. Your confidence level in this recommendation (1-10)
-4. Detailed reasoning for your recommendation
-5. Assessment of the player's value relative to the current bid
-6. Strategic advice for this auction situation
-
-Return your analysis as a valid JSON object with these fields:
-{
-  "shouldBid": boolean,
-  "recommendedBidAmount": number,
-  "confidence": number,
-  "reasoning": "string",
-  "playerValueAssessment": "string",
-  "strategicAdvice": "string"
-}`;
-
-    // Get AI response
-    const response = await generateText(prompt);
-    
-    try {
-      const parsedResponse = JSON.parse(response);
-      return ManualBiddingRecommendationOutputSchema.parse(parsedResponse);
-    } catch (error) {
-      console.error("Error parsing AI response for bidding recommendation:", error);
-      console.log("Raw AI response:", response);
-      
-      // Fallback response if parsing fails
-      return {
-        shouldBid: input.currentBid < (input.remainingBudget * 0.5),
-        recommendedBidAmount: Math.round((input.currentBid * 1.12) * 100000) / 100000,
-        confidence: 5,
-        reasoning: "This is a fallback recommendation based on basic budget analysis since the AI response could not be parsed correctly.",
-        playerValueAssessment: "Unable to provide detailed player value assessment due to technical issues.",
-        strategicAdvice: "Consider your team needs and remaining budget carefully before bidding."
-      };
-    }
-  } catch (error) {
-    console.error("Error getting manual bidding recommendation:", error);
-    
-    // Default fallback response
     return {
-      shouldBid: input.currentBid < (input.remainingBudget * 0.4),
-      recommendedBidAmount: Math.round((input.currentBid * 1.1) * 100000) / 100000,
-      confidence: 3,
-      reasoning: "This is a fallback recommendation due to an error in the AI service.",
-      playerValueAssessment: "Unable to assess player value due to technical issues.",
-      strategicAdvice: "Consider waiting for technical issues to be resolved before making major bidding decisions."
+      shouldBid: suggestion.shouldBid,
+      recommendedAmount: suggestion.recommendedAmount,
+      confidence: 7, // Default confidence level
+      reasoning: suggestion.reason,
+      playerValueAssessment: "Analysis based on player statistics and current market value.",
+      strategicAdvice: suggestion.quickTip
+    };
+  } catch (error) {
+    console.error("Error in manual bidding recommendation:", error);
+    return {
+      shouldBid: false,
+      recommendedAmount: 0,
+      confidence: 1,
+      reasoning: "Error occurred while generating recommendation",
+      playerValueAssessment: "Unable to assess player value due to system error",
+      strategicAdvice: "Consider manual bidding until system recovers"
     };
   }
 }
+
+// Function to generate auction moderator commentary
+export async function generateModeratorCommentary(
+  playerName: string, 
+  playerRole: string,
+  sellingPrice: number, 
+  winningTeam: string, 
+  expectedValue?: number
+) {
+  try {
+    // Check if we're in mock mode or have API issues
+    if (USE_MOCK_DATA) {
+      const valuePhrases = ["great value", "fair price", "premium price"];
+      const teamPhrases = ["strong addition to", "key player for", "interesting choice for"];
+      
+      const randomValue = valuePhrases[Math.floor(Math.random() * valuePhrases.length)];
+      const randomTeam = teamPhrases[Math.floor(Math.random() * teamPhrases.length)];
+      
+      return `${playerName} goes to ${winningTeam} for ${sellingPrice}! That's a ${randomValue} and will be a ${randomTeam} their squad.`;
+    }
+    
+    const prompt = `You are an enthusiastic cricket auction moderator. Generate a short, exciting commentary (max 1-2 sentences) for a player just sold:
+
+Player: ${playerName}
+Role: ${playerRole}
+Final selling price: ${sellingPrice}
+Winning team: ${winningTeam}
+${expectedValue ? `Expected value: ${expectedValue}` : ''}
+
+Make it sound exciting, and include a brief comment on if this was a good deal based on the price.
+Respond with just the commentary text, no additional formatting.`;
+
+    const response = await ai.chat.completions.create({
+      model: 'llama3-8b-8192', // Using the smaller model for faster responses
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      max_tokens: 100
+    });
+    
+    return response.choices[0]?.message?.content || `${playerName} has been sold to ${winningTeam} for ${sellingPrice}!`;
+  } catch (error) {
+    console.error('Error generating moderator commentary:', error);
+    return `${playerName} has been sold to ${winningTeam} for ${sellingPrice}!`;
+  }
+}
+
+// Export the schema and types
+export { ManualBiddingRecommendationInputSchema };

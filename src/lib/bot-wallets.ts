@@ -91,8 +91,8 @@ export const BOT_WALLETS: Wallet[] = [
   },
   {
     name: "AI Moderator",
-    address: "0xD76BFB9C5b8B2309e2134Fef7A9f5C926c4Dcf4A", // Updated with provided moderator address
-    privateKey: "4752894e50e69ffdba2f1788122ff5c148fc42b9236b379bbbfcd53bc88af06b", // Added moderator private key
+    address: "0xDAcd7b2E80E2Bee4C5f6d5BBD683a56CE0130f46", // Updated to match the address used in other files
+    privateKey: "4752894e50e69ffdba2f1788122ff5c148fc42b9236b379bbbfcd53bc88af06b", // Private key from .env
     type: "moderator",
     isAI: true,
     balance: 100

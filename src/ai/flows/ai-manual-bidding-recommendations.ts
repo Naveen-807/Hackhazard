@@ -2,7 +2,7 @@
 /**
  * @fileOverview Provides AI-powered recommendations for manual bidding during auction
  *
- * - getManualBiddingRecommendations - A function that returns bidding recommendations for users.
+ * - getManualBiddingAdvice - A function that returns bidding recommendations for users.
  * - ManualBiddingRecommendationRequest - The input type for the function.
  * - ManualBiddingRecommendationResponse - The return type for the function.
  */
@@ -51,6 +51,7 @@ export async function getManualBiddingAdvice(
       playerName: request.player.name,
       playerRole: request.player.role || 'Unknown',
       playerStats: {
+        basePrice: request.player.basePrice,
         battingAverage: request.player.stats?.battingAverage,
         strikeRate: request.player.stats?.strikeRate,
         wickets: request.player.stats?.wickets,
@@ -65,7 +66,16 @@ export async function getManualBiddingAdvice(
 
     // Get recommendation from the AI
     const recommendation = await getManualBiddingRecommendation(input);
-    return recommendation;
+    
+    // Map to the response format
+    return {
+      shouldBid: recommendation.shouldBid || false,
+      recommendedBidAmount: recommendation.recommendedAmount || request.currentBid * 1.1,
+      confidence: recommendation.confidence || 5,
+      reasoning: recommendation.reasoning || recommendation.reason || 'Based on player statistics and team needs',
+      playerValueAssessment: recommendation.playerValueAssessment || 'Player appears to be reasonably valued at the current bid',
+      strategicAdvice: recommendation.strategicAdvice || recommendation.quickTip || 'Consider your remaining budget before bidding'
+    };
   } catch (error) {
     console.error('Error getting manual bidding advice:', error);
     

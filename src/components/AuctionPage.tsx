@@ -21,8 +21,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { Volume2, VolumeX, Bot, Zap, Trophy } from 'lucide-react';
 import { placeBid, getAuctionDetails } from '@/lib/auction-contract';
 import { MONAD_CONFIG } from '@/lib/monad-utils';
-import { isAIWallet, startAutoBidding, stopAutoBidding } from '@/lib/bot-bidding-service';
-import { TeamPersonality } from '@/ai/flows/ai-agent-profiles';
+import { isAIWallet, startAutoBidding, stopAutoBidding, stopAllAutomatedBidding } from '@/lib/bot-bidding-service';
 
 // Default team for human users
 const DEFAULT_USER_TEAM: TeamInfo = {
@@ -62,7 +61,6 @@ const AuctionPage: React.FC = () => {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [isWalletConnected, setIsWalletConnected] = useState<boolean>(false);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
-  const [selectedTeam, setSelectedTeam] = useState<TeamInfo | null>(null);
   const [bidHistory, setBidHistory] = useState<any[]>([]);
   const [showRecommendations, setShowRecommendations] = useState<boolean>(true);
   const [bidRecommendation, setBidRecommendation] = useState<any>(null);
@@ -75,10 +73,13 @@ const AuctionPage: React.FC = () => {
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
   const [ownedPlayerNFTs, setOwnedPlayerNFTs] = useState<string[]>([]);
   const [activeBotBidders, setActiveBotBidders] = useState<string[]>([]);
+  const [finalAuctionStatus, setFinalAuctionStatus] = useState<string>("Active");
+  const [paymentPending, setPaymentPending] = useState(false);
 
   const { toast } = useToast();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const botCheckInterval = useRef<NodeJS.Timeout | null>(null);
+  const hasEndedRef = useRef(false);
   const isMobile = useIsMobile();
 
   // Format utility functions
@@ -89,6 +90,8 @@ const AuctionPage: React.FC = () => {
 
   // Initialize auction data
   useEffect(() => {
+    // Only initialize auction after wallet is connected
+    if (!isWalletConnected) return;
     const initializeAuction = async () => {
       try {
         setIsLoading(true);
@@ -148,104 +151,122 @@ const AuctionPage: React.FC = () => {
         clearInterval(botCheckInterval.current);
       }
     };
-  }, []);
+  }, [isWalletConnected]);
+
+  useEffect(() => {
+    // Force a bot bid to ensure bid history is populated immediately after page loads
+    const forceInitialBotBid = async () => {
+      if (selectedPlayer && !isLoading) {
+        setTimeout(async () => {
+          try {
+            console.log("Forcing an initial bot bid for demo purposes...");
+            
+            // Import bot wallets
+            const { getAllBotWallets } = await import('@/lib/bot-wallets');
+            const allBots = await getAllBotWallets();
+            
+            if (allBots.length > 0) {
+              const demoBot = allBots[0];
+              const initialBid = selectedPlayer.basePrice * 1.1;
+              
+              console.log(`Demo bot ${demoBot.name} will place a bid of ${initialBid.toFixed(2)}`);
+              
+              // Place a bid with this bot to populate bid history
+              await processAIBotBid(demoBot.address, demoBot.name, initialBid);
+              
+              console.log("Force initial bot bid completed - check bid history now");
+            }
+          } catch (error) {
+            console.error("Error forcing initial bot bid:", error);
+          }
+        }, 3000); // Wait 3 seconds after page loads before showing demo bid
+      }
+    };
+    
+    forceInitialBotBid();
+    
+  }, [selectedPlayer, isLoading]);
 
   // Start timer to check for AI bids
   const startAIBidCheckInterval = () => {
     if (botCheckInterval.current) {
       clearInterval(botCheckInterval.current);
     }
-    
+    // IMPROVED: More frequent checking for extremely active bidding
     botCheckInterval.current = setInterval(() => {
       // Only process AI bots if auction is active
-      if (remainingTime > 0 && selectedPlayer && !isAuctionFinalized) {
+      if (remainingTime > 0 && selectedPlayer && !isAuctionFinalized && !paymentPending) {
         checkAndProcessAIBids();
       }
-    }, 1500);
+    }, 300); // 300ms interval for very active bidding
   };
 
-  // Check and process AI bids
+  // Check and process AI bids - MODIFIED TO ENSURE ALL BOTS PARTICIPATE
   const checkAndProcessAIBids = async () => {
+    if (paymentPending) return;
+
     // Exit early if no player is selected or auction is over
     if (!selectedPlayer || remainingTime <= 0 || isAuctionFinalized) {
       return;
     }
     
     try {
-      console.log("Checking for AI bot bids for player:", selectedPlayer.name);
-      
       // Get all AI bots
       const { getAllBotWallets } = await import('@/lib/bot-wallets');
       const allBots = await getAllBotWallets();
-      console.log(`Found ${allBots.length} potential bot bidders`);
       
-      // Always select at least one bot to bid to ensure active bidding
-      const activeBots = allBots
-        .filter(bot => 
-          // Only include bots that have enough balance to bid
-          bot.balance > currentBid * 1.05 && 
-          // Don't bid if already highest bidder
-          (!highestBidder || highestBidder.toLowerCase() !== bot.address.toLowerCase())
-        )
-        .slice(0, 1 + Math.floor(Math.random() * 2)); // Select 1-2 bots
+      // ENHANCED: Use all bots for more active bidding
+      // This ensures all bots participate in each auction
+      let botsToUse = [];
       
-      console.log(`Selected ${activeBots.length} bots to potentially bid this round`);
-      
-      // Keep track of active bot bidders
-      setActiveBotBidders(prev => 
-        [...new Set([...prev, ...activeBots.map(b => b.address)])]
+      // Make all bots that aren't the highest bidder participate
+      botsToUse = allBots.filter(bot => 
+        !highestBidder || bot.address.toLowerCase() !== highestBidder.toLowerCase()
       );
       
-      // For each bot, calculate a bid amount and place it
-      for (const bot of activeBots) {
-        try {
-          // Base bid increment between 5-15%
-          const baseIncrement = 0.05 + (Math.random() * 0.10);
-          
-          // Add personality factor based on bot strategy
-          let strategyFactor = 1.0;
-          if (bot.strategy === 'aggressive') {
-            strategyFactor = 1.2; // Aggressive bots bid higher
-          } else if (bot.strategy === 'conservative') {
-            strategyFactor = 0.8; // Conservative bots bid lower
-          }
-          
-          // Calculate bid amount with strategy factor applied
-          const bidFactor = baseIncrement * strategyFactor;
-          const maxBid = bot.balance * 0.95; // Use up to 95% of balance
-          
-          // Calculate bid amount
-          let bidAmount = currentBid * (1 + bidFactor);
-          
-          // Ensure minimum bid increment of 0.0001
-          bidAmount = Math.max(bidAmount, currentBid + 0.0001);
-          
-          // Cap the bid at the bot's max
-          if (bidAmount > maxBid) {
-            bidAmount = maxBid;
-          }
-          
-          // Round to 4 decimals - changed from const to let to allow modification
-          let roundedBid = Math.round(bidAmount * 10000) / 10000;
-          
-          console.log(`Bot ${bot.name} will place a bid of ${roundedBid}`);
-          
-          // Make sure the bid is at least slightly higher than current bid
-          if (roundedBid <= currentBid) {
-            roundedBid = currentBid + 0.0001;
-          }
-          
-          // Process the bot bid
-          await processAIBotBid(bot.address, bot.name, roundedBid);
-          
-          // Only one bot bids per check to avoid multiple bids at once
-          break;
-        } catch (error) {
-          console.error(`Error processing bot ${bot.name} bid:`, error);
+      // If we somehow don't have any eligible bots, use any bot as fallback
+      if (botsToUse.length === 0 && allBots.length > 0) {
+        botsToUse = [allBots[0]];
+      }
+      
+      console.log(`${botsToUse.length} bots will participate in this bidding round`);
+      
+      // Track active bidders
+      setActiveBotBidders(prev => 
+        [...new Set([...prev, ...botsToUse.map(b => b.address)])]
+      );
+      
+      // Process each bot's bid with randomized delay to make bidding appear natural
+      for (const bot of botsToUse) {
+        // Skip if already highest bidder
+        if (highestBidder && bot.address.toLowerCase() === highestBidder.toLowerCase()) {
+          continue;
         }
+        
+        // Calculate a bid amount that will always work
+        // Add some variance to bid increase (3-18%) for more realistic bidding
+        const bidIncrease = 0.03 + (Math.random() * 0.15);
+        let bidAmount = currentBid * (1 + bidIncrease);
+        
+        // Minimum increment of 0.001
+        bidAmount = Math.max(bidAmount, currentBid + 0.001);
+        
+        // Cap at bot's balance (95% of wallet balance max)
+        const maxBid = Math.min(bot.balance * 0.95, currentBid * 2.5);
+        bidAmount = Math.min(bidAmount, maxBid);
+        
+        // Round to 4 decimals for cleaner numbers
+        const roundedBid = Math.round(bidAmount * 10000) / 10000;
+        
+        // Add small random delay between bids for natural flow (50-800ms)
+        const bidDelay = 50 + Math.floor(Math.random() * 750);
+        await new Promise(resolve => setTimeout(resolve, bidDelay));
+        
+        // Process the bid without further checks
+        await processAIBotBid(bot.address, bot.name, roundedBid);
       }
     } catch (error) {
-      console.error("Error processing AI bids:", error);
+      console.error("Error in bot bidding:", error);
     }
   };
 
@@ -290,7 +311,7 @@ const AuctionPage: React.FC = () => {
       setHighestBidder(botAddress);
       setHighestBidderName(botWallet.name); // Use the actual team name
       
-      // Add to bid history with team information
+      // Create new bid with enhanced visualization data
       const newBid = {
         timestamp: Date.now(),
         bidder: botAddress,
@@ -301,11 +322,18 @@ const AuctionPage: React.FC = () => {
       };
       
       console.log("Adding new bid to history:", newBid);
-      setBidHistory(prev => [...prev, newBid]);
       
-      // Reset timer to give others time to respond
+      // Add bot bid to history and log the updated history for debugging
+      setBidHistory(prev => {
+        const updatedHistory = [...prev, newBid];
+        console.log("Updated bid history:", updatedHistory);
+        return updatedHistory;
+      });
+      
+      // Ensure bid history persists by extending timer
       if (remainingTime < 15) {
         setRemainingTime(15);
+        console.log("Extended timer to 15 seconds");
       }
       
       // Play bidding sound
@@ -326,111 +354,14 @@ const AuctionPage: React.FC = () => {
       });
       
       console.log(`Bot ${botWallet.name} successfully placed bid of ${amount} ETH`);
+      
+      // Force small delay to ensure bid is displayed in UI before any state changes
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       return true;
     } catch (error) {
       console.error("Error in processAIBotBid:", error);
       return false;
-    }
-  };
-
-  // Start auction timer
-  const startAuctionTimer = () => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-    
-    setRemainingTime(30); // Reset to 30 seconds
-    
-    timerRef.current = setInterval(() => {
-      setRemainingTime((prevTime) => {
-        if (prevTime <= 1) {
-          // Timer finished
-          clearInterval(timerRef.current as NodeJS.Timeout);
-          handleAuctionEnd();
-          return 0;
-        }
-        return prevTime - 1;
-      });
-    }, 1000);
-  };
-
-  // Handle auction end
-  const handleAuctionEnd = () => {
-    try {
-      console.log("Auction ended for player:", selectedPlayer?.name);
-      
-      // Always clear the timer first to prevent multiple calls
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      // Handle end of current player auction
-      if (highestBidder) {
-        setIsAuctionFinalized(true);
-        
-        // Add final bid to history with 'SOLD' status
-        const finalBid = {
-          timestamp: Date.now() / 1000,
-          bidder: highestBidder,
-          bidderName: highestBidderName || 'Unknown',
-          amount: currentBid,
-          status: 'SOLD'
-        };
-        
-        setBidHistory(prev => [...prev, finalBid]);
-        
-        toast({
-          title: "Player Sold!",
-          description: `${selectedPlayer?.name} sold to ${highestBidderName || formatAddress(highestBidder)} for ${MONAD_CONFIG.nativeCurrency.symbol}${currentBid.toFixed(5)}`,
-          variant: "default",
-        });
-        
-        // Process payment automatically for AI bots with a slight delay to ensure UI updates first
-        if (isAIWallet && highestBidder && isAIWallet(highestBidder)) {
-          setTimeout(() => {
-            processAIBotPayment();
-          }, 3000);
-        }
-      } else {
-        // No bidder, move to next player
-        toast({
-          title: "No Bids",
-          description: `No bids were placed for ${selectedPlayer?.name}. Moving to next player.`,
-          variant: "default",
-        });
-        
-        // Slight delay before moving to next player to allow toast to be seen
-        setTimeout(() => {
-          moveToNextPlayer();
-        }, 2000);
-      }
-    } catch (error) {
-      console.error("Error in handleAuctionEnd:", error);
-      toast({
-        title: "Error",
-        description: "There was an error processing the auction end. Moving to next player.",
-        variant: "destructive",
-      });
-      
-      // Try to recover by forcing next player after a delay
-      setTimeout(() => {
-        try {
-          moveToNextPlayer();
-        } catch (moveError) {
-          console.error("Failed to move to next player:", moveError);
-          // Last resort: just refresh the state to a safe value
-          if (players.length > currentPlayerIndex + 1) {
-            setCurrentPlayerIndex(prev => prev + 1);
-            setSelectedPlayer(players[currentPlayerIndex + 1]);
-            setIsAuctionFinalized(false);
-            setHighestBidder(null);
-            setHighestBidderName(null);
-            setIsPaid(false);
-            startAuctionTimer();
-          }
-        }
-      }, 2000);
     }
   };
 
@@ -456,13 +387,8 @@ const AuctionPage: React.FC = () => {
       }
       
       // Initialize provider if not already done
-      if (!provider) {
-        if (typeof window !== 'undefined' && window.ethereum) {
-          setProvider(new ethers.BrowserProvider(window.ethereum));
-        } else {
-          // Fallback to a direct provider
-          setProvider(new ethers.JsonRpcProvider("https://rpc.ankr.com/eth_sepolia"));
-        }
+      if (!provider && typeof window !== 'undefined' && window.ethereum) {
+        setProvider(new ethers.BrowserProvider(window.ethereum));
       }
       
       // Show payment processing message
@@ -472,71 +398,22 @@ const AuctionPage: React.FC = () => {
         variant: "default",
       });
 
-      // FIXED: Use simulated payment for more reliable demo functionality
+      // Add pending transaction to bid history
+      const pendingPaymentBid = {
+        timestamp: Date.now() / 1000,
+        bidder: highestBidder,
+        bidderName: highestBidderName || 'Unknown',
+        amount: currentBid,
+        status: 'PROCESSING',
+        botName: highestBidderName,
+        teamLogo: `https://ui-avatars.com/api/?name=${encodeURIComponent(botWallet.name)}&background=152238&color=fff&size=128`
+      };
+      
+      setBidHistory(prev => [...prev, pendingPaymentBid]);
+
+      // Use simulated payment for more reliable demo functionality
       console.log("Using simulated payment for more reliable demo");
       simulateBotPayment();
-      
-      // Only attempt actual contract payment in production environment
-      /* Disabled contract payment for demo purposes
-      import('@/lib/auction-contract').then(async ({ BOT_PAYMENT_CONTRACT_ADDRESS, BOT_PAYMENT_CONTRACT_ABI, MODERATOR_ADDRESS }) => {
-        try {
-          console.log("Contract addresses:", {
-            BOT_PAYMENT_CONTRACT_ADDRESS,
-            MODERATOR_ADDRESS,
-            botAddress: highestBidder
-          });
-          
-          // Create signer for the bot wallet
-          const botSigner = new ethers.Wallet(botWallet.privateKey, provider);
-          
-          // Connect to the BotPayment contract
-          const botPaymentContract = new ethers.Contract(
-            BOT_PAYMENT_CONTRACT_ADDRESS,
-            BOT_PAYMENT_CONTRACT_ABI,
-            botSigner
-          );
-          
-          console.log(`Sending payment of ${currentBid} ETH from ${botWallet.name} to moderator ${MODERATOR_ADDRESS}`);
-          
-          // Call payModerator function with the bid amount
-          const tx = await botPaymentContract.payModerator({
-            value: ethers.parseEther(currentBid.toString())
-          });
-          
-          console.log("Transaction sent:", tx.hash);
-          
-          // Wait for transaction confirmation
-          const receipt = await tx.wait();
-          console.log(`Payment transaction confirmed with hash: ${receipt.hash}`);
-          
-          // Update state to mark as paid
-          setIsPaid(true);
-          setIsProcessingPayment(false);
-          
-          // Alert everyone
-          toast({
-            title: "Bot Payment Completed",
-            description: `${highestBidderName} has automatically paid ${currentBid.toFixed(5)} ETH to the moderator via smart contract`,
-            variant: "default",
-          });
-          
-          // Move to next player after a short delay to show payment completed
-          setTimeout(() => {
-            moveToNextPlayer();
-          }, 5000);
-        } catch (error) {
-          console.error("Error in bot payment contract transaction:", error);
-          setIsProcessingPayment(false);
-          
-          // Provide fallback payment simulation for demo purposes
-          console.log("Using fallback payment simulation for demo");
-          simulateBotPayment();
-        }
-      }).catch(err => {
-        console.error("Error importing auction contract:", err);
-        simulateBotPayment();
-      });
-      */
     } catch (error) {
       console.error("Error processing bot payment:", error);
       setIsProcessingPayment(false);
@@ -551,22 +428,51 @@ const AuctionPage: React.FC = () => {
     console.log("Simulating bot payment for demo purposes");
     
     try {
-      // Simulate blockchain transaction delay
+      // Simulate blockchain transaction delay - varies by team for realistic feel
+      const randomDelay = 1500 + Math.random() * 2000; // 1.5-3.5 seconds
+      
       setTimeout(() => {
         // Mark as paid
         setIsPaid(true);
         setIsProcessingPayment(false);
+        setPaymentPending(false);
+        
+        // Update the bid history with completed payment status
+        setBidHistory(prev => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          
+          if (lastIndex >= 0 && updated[lastIndex].bidder === highestBidder) {
+            updated[lastIndex] = {
+              ...updated[lastIndex],
+              status: 'PAID'
+            };
+          }
+          
+          return updated;
+        });
         
         // Alert everyone
         toast({
-          title: "Bot Payment Completed (Simulated)",
+          title: "Bot Payment Completed",
           description: `${highestBidderName} has paid ${MONAD_CONFIG.nativeCurrency.symbol}${currentBid.toFixed(5)}`,
           variant: "default",
+          duration: 5000,
         });
         
         // Update bot wallet balance (simulated)
         if (highestBidder && selectedPlayer) {
           console.log(`Updating bot wallet balance for ${highestBidderName}`);
+        }
+        
+        // Play success sound
+        if (soundEnabled) {
+          try {
+            const successSound = new Audio('/sounds/win.mp3');
+            successSound.play().catch(err => console.log("Sound not played:", err));
+          } catch (soundError) {
+            console.error("Error playing sound:", soundError);
+          }
         }
         
         // Move to next player after a short delay with error handling
@@ -600,10 +506,10 @@ const AuctionPage: React.FC = () => {
                 clearInterval(timerRef.current);
               }
               timerRef.current = setInterval(() => {
+                if (paymentPending) return;
                 setRemainingTime((prevTime) => {
                   if (prevTime <= 1) {
                     clearInterval(timerRef.current as NodeJS.Timeout);
-                    handleAuctionEnd();
                     return 0;
                   }
                   return prevTime - 1;
@@ -612,11 +518,12 @@ const AuctionPage: React.FC = () => {
             }
           }
         }, 3000);
-      }, 2000);
+      }, randomDelay); // Variable delay for more realistic experience
     } catch (error) {
       console.error("Error in simulateBotPayment:", error);
       // Ensure we don't get stuck in processing state
       setIsProcessingPayment(false);
+      setPaymentPending(false);
       
       toast({
         title: "Error Processing Payment",
@@ -631,6 +538,185 @@ const AuctionPage: React.FC = () => {
     }
   };
 
+  // Start auction timer
+  const startAuctionTimer = () => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    
+    setRemainingTime(30); // Reset to 30 seconds
+    
+    timerRef.current = setInterval(() => {
+      if (paymentPending) return; // Block timer decrement
+      setRemainingTime((prevTime) => {
+        if (prevTime <= 1) {
+          clearInterval(timerRef.current as NodeJS.Timeout);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+  };
+
+  // Trigger handleAuctionEnd when remainingTime === 0
+  useEffect(() => {
+    if (remainingTime === 0 && !hasEndedRef.current) {
+      hasEndedRef.current = true;
+      handleAuctionEnd();
+    }
+  }, [remainingTime]);
+
+  // Handle auction end
+  const handleAuctionEnd = async () => {
+    try {
+      console.log("Auction ended for player:", selectedPlayer?.name);
+      // Debug: Print bid history and last bid
+      console.log("[DEBUG] Full bidHistory at auction end:", bidHistory);
+      const lastBid = bidHistory.length > 0 ? bidHistory[bidHistory.length - 1] : null;
+      console.log("[DEBUG] Last bid at auction end:", lastBid);
+
+      // Always clear the timer first to prevent multiple calls
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+
+      // FIX: Only mark as SOLD if the last bid is a real bid
+      const isValidBid = lastBid && lastBid.bidder && lastBid.amount > 0;
+
+      if (isValidBid) {
+        setIsAuctionFinalized(true);
+        setFinalAuctionStatus("Sold");
+        let botTeamInfo = null;
+        if (isAIWallet && highestBidder && isAIWallet(highestBidder)) {
+          const { getBotWalletByAddress } = await import('@/lib/bot-wallets');
+          const botWallet = await getBotWalletByAddress(highestBidder);
+          if (botWallet) {
+            botTeamInfo = {
+              name: botWallet.name,
+              teamLogo: `https://ui-avatars.com/api/?name=${encodeURIComponent(botWallet.name)}&background=152238&color=fff&size=128`
+            };
+          }
+        }
+        const finalBid = {
+          timestamp: Date.now() / 1000,
+          bidder: highestBidder,
+          bidderName: highestBidderName || 'Unknown',
+          amount: currentBid,
+          status: 'SOLD',
+          botName: botTeamInfo?.name || highestBidderName,
+          teamLogo: botTeamInfo?.teamLogo
+        };
+        setBidHistory(prev => [...prev, finalBid]);
+        if (selectedPlayer && highestBidderName) {
+          try {
+            const { generateModeratorCommentary } = await import('@/ai/ai-instance');
+            const commentary = await generateModeratorCommentary(
+              selectedPlayer.name,
+              selectedPlayer.role || 'Player',
+              currentBid, 
+              highestBidderName,
+              selectedPlayer.basePrice
+            );
+            toast({
+              title: "Player Sold!",
+              description: commentary,
+              variant: "default",
+            });
+          } catch (commentaryError) {
+            toast({
+              title: "Player Sold!",
+              description: `${selectedPlayer?.name} sold to ${highestBidderName || formatAddress(highestBidder)} for ${MONAD_CONFIG.nativeCurrency.symbol}${currentBid.toFixed(5)}`,
+              variant: "default",
+            });
+          }
+        } else {
+          toast({
+            title: "Player Sold!",
+            description: `${selectedPlayer?.name} sold to ${highestBidderName || formatAddress(highestBidder)} for ${MONAD_CONFIG.nativeCurrency.symbol}${currentBid.toFixed(5)}`,
+            variant: "default",
+          });
+        }
+        if (isAIWallet && highestBidder && isAIWallet(highestBidder)) {
+          const randomDelay = 2000 + Math.random() * 3000;
+          setTimeout(() => { processAIBotPayment(); }, randomDelay);
+        }
+        if (isCurrentUserWinner) {
+          setPaymentPending(true);
+          return;
+        }
+      } else {
+        setFinalAuctionStatus("Unsold");
+        const unsoldBid = {
+          timestamp: Date.now() / 1000,
+          bidder: null,
+          bidderName: null,
+          amount: currentBid,
+          status: 'UNSOLD'
+        };
+        setBidHistory(prev => [...prev, unsoldBid]);
+        toast({
+          title: "No Bids",
+          description: `No bids were placed for ${selectedPlayer?.name}. Moving to next player.`,
+          variant: "default",
+        });
+        setIsAuctionFinalized(false);
+        setIsPaid(false);
+        setHighestBidder(null);
+        setHighestBidderName(null);
+        setTimeout(() => {
+          try { moveToNextPlayer(); } catch (moveError) {
+            if (players.length > currentPlayerIndex + 1) {
+              const nextIndex = currentPlayerIndex + 1;
+              setCurrentPlayerIndex(nextIndex);
+              const nextPlayer = players[nextIndex];
+              if (nextPlayer) {
+                setSelectedPlayer(nextPlayer);
+                setCurrentBid(nextPlayer.basePrice || 0.1);
+                setBidHistory([]);
+                setRemainingTime(30);
+                startAuctionTimer();
+              }
+            }
+          }
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Error in handleAuctionEnd:", error);
+      toast({
+        title: "Error",
+        description: "There was an error processing the auction end. Moving to next player.",
+        variant: "destructive",
+      });
+      
+      // Force next player with guaranteed execution if there's an error
+      setTimeout(() => {
+        try {
+          moveToNextPlayer();
+        } catch (moveError) {
+          console.error("Failed to move to next player:", moveError);
+          // Last resort: just refresh the state to a safe value
+          if (players.length > currentPlayerIndex + 1) {
+            const nextIndex = currentPlayerIndex + 1;
+            setCurrentPlayerIndex(nextIndex);
+            const nextPlayer = players[nextIndex];
+            if (nextPlayer) {
+              setSelectedPlayer(nextPlayer);
+              setCurrentBid(nextPlayer.basePrice || 0.1);
+              setHighestBidder(null);
+              setHighestBidderName(null);
+              setBidHistory([]);
+              setIsAuctionFinalized(false);
+              setIsPaid(false);
+              setRemainingTime(30);
+              startAuctionTimer();
+            }
+          }
+        }
+      }, 2000);
+    }
+  };
+
   // Process payment for human users
   const handleUserPayment = async () => {
     if (!highestBidder || !selectedPlayer || !isWalletConnected) {
@@ -639,88 +725,84 @@ const AuctionPage: React.FC = () => {
         description: "Cannot process payment. Please ensure your wallet is connected.",
         variant: "destructive",
       });
-      return;
+      return { success: false, error: "Wallet not connected." };
     }
-    
     try {
       setIsProcessingPayment(true);
-      
-      // Show payment processing message
       toast({
         title: "Processing Payment",
         description: `Processing your payment of ${MONAD_CONFIG.nativeCurrency.symbol}${currentBid.toFixed(5)}`,
         variant: "default",
       });
-      
-      // For demo purposes, use simulated payment which is more reliable
-      console.log("Using simulated payment for better demo experience");
-      
-      // Important: We use await here to ensure the payment completes before continuing
-      await new Promise(resolve => {
-        simulateUserPaymentAsync(resolve);
-      });
-      
-      /* Disabled real transaction code for demo purposes
       if (!provider) {
-        // Create a provider if it doesn't exist
-        if (typeof window !== 'undefined' && window.ethereum) {
-          setProvider(new ethers.BrowserProvider(window.ethereum));
-        } else {
-          setProvider(new ethers.JsonRpcProvider("https://rpc.ankr.com/eth_sepolia"));
-        }
+        setIsProcessingPayment(false);
+        setPaymentPending(false);
+        return { success: false, error: "MetaMask not detected. Please connect your wallet." };
       }
-      
-      // Get signer for the transaction
-      const signer = await provider.getSigner();
-      
-      // Import the moderator address from auction contract
+      // Check network
+      const network = await provider.getNetwork();
+      if (network.chainId !== BigInt(MONAD_CONFIG.chainId)) {
+        setIsProcessingPayment(false);
+        setPaymentPending(false);
+        return { success: false, error: `Please switch MetaMask to the correct network (chainId: ${MONAD_CONFIG.chainId}).` };
+      }
+      // Get signer
+      let signer;
+      try {
+        signer = await provider.getSigner();
+      } catch (err) {
+        setIsProcessingPayment(false);
+        setPaymentPending(false);
+        return { success: false, error: "Could not access your wallet. Please reconnect and try again." };
+      }
+      // Send real transaction to moderator
       const { MODERATOR_ADDRESS } = await import('@/lib/auction-contract');
-      
-      if (!MODERATOR_ADDRESS) {
-        throw new Error("Moderator address not found");
+      let tx;
+      try {
+        tx = await signer.sendTransaction({
+          to: MODERATOR_ADDRESS,
+          value: ethers.parseEther(currentBid.toString()),
+          gasLimit: 50000,
+        });
+      } catch (error) {
+        setIsProcessingPayment(false);
+        setPaymentPending(false);
+        const err = error as any;
+        if (err?.message?.includes("user rejected")) {
+          return { success: false, error: "Transaction was rejected. Please try again." };
+        }
+        if (err?.message?.includes("insufficient funds")) {
+          return { success: false, error: "Insufficient funds in your wallet to complete this transaction." };
+        }
+        return { success: false, error: err?.message || "Transaction failed. Please try again." };
       }
-      
-      // Perform the manual transaction
-      const tx = await signer.sendTransaction({
-        to: MODERATOR_ADDRESS,
-        value: ethers.parseEther(currentBid.toString()),
+      await tx.wait();
+      toast({
+        title: 'Transaction confirmed!',
+        description: '',
+        variant: 'default',
       });
-      
-      console.log("Transaction sent:", tx.hash);
-      
-      // Wait for transaction confirmation
-      const receipt = await tx.wait();
-      console.log("Transaction confirmed:", receipt.hash);
-      
-      // Update payment status
       setIsPaid(true);
       setIsProcessingPayment(false);
-      
-      // Update owned NFTs
+      setPaymentPending(false);
       if (selectedPlayer) {
         setOwnedPlayerNFTs(prev => [...prev, selectedPlayer.name]);
       }
-      
       toast({
         title: "Payment Successful!",
-        description: `You've successfully purchased ${selectedPlayer.name} for ${MONAD_CONFIG.nativeCurrency.symbol}${currentBid.toFixed(5)}`,
+        description: `You have purchased ${selectedPlayer?.name} for ${currentBid.toFixed(5)} ${MONAD_CONFIG.nativeCurrency.symbol}!`,
         variant: "default",
       });
-      
-      // Move to next player after a delay
-      setTimeout(() => {
-        moveToNextPlayer();
-      }, 3000);
-      */
+      return { success: true };
     } catch (error) {
-      console.error("Payment failed:", error);
       setIsProcessingPayment(false);
-      
+      setPaymentPending(false);
       toast({
         title: "Payment Failed",
-        description: "There was an error processing your payment. Please try again.",
+        description: (error as any)?.message || "There was an error processing your payment.",
         variant: "destructive",
       });
+      return { success: false, error: (error as any)?.message || "There was an error processing your payment." };
     }
   };
 
@@ -739,6 +821,7 @@ const AuctionPage: React.FC = () => {
         // Mark as paid
         setIsPaid(true);
         setIsProcessingPayment(false);
+        setPaymentPending(false);
         
         // Update owned NFTs
         if (selectedPlayer) {
@@ -775,6 +858,7 @@ const AuctionPage: React.FC = () => {
       } catch (error) {
         console.error("Error in simulateUserPayment:", error);
         setIsProcessingPayment(false);
+        setPaymentPending(false);
         onComplete();
       }
     }, 3000); // Increased delay to 3 seconds to make payment more visible
@@ -785,39 +869,43 @@ const AuctionPage: React.FC = () => {
     simulateUserPaymentAsync(() => {});
   };
 
-  // Move to next player in the auction
+  // Move to next player
   const moveToNextPlayer = () => {
-    // Clear any existing timers first
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-    
+    if (paymentPending) return;
+
+    hasEndedRef.current = false;
     try {
-      if (currentPlayerIndex < players.length - 1) {
-        const nextIndex = currentPlayerIndex + 1;
+      console.log("Moving to next player...");
+      
+      // Always clear the auction state first
+      setIsAuctionFinalized(false);
+      setIsPaid(false);
+      setHighestBidder(null);
+      setHighestBidderName(null);
+      setFinalAuctionStatus("Active");
+      
+      // Stop any bot bidding activity from previous round
+      stopAllAutomatedBidding();
+      
+      // Reset active bidders
+      setActiveBotBidders([]);
+      
+      // Calculate next player index
+      const nextIndex = currentPlayerIndex + 1;
+      
+      if (nextIndex < players.length) {
+        console.log(`Moving to player at index ${nextIndex}: ${players[nextIndex]?.name}`);
+        
+        // Get next player
         const nextPlayer = players[nextIndex];
         
-        if (!nextPlayer) {
-          console.error("Next player is undefined, cannot proceed");
-          toast({
-            title: "Error",
-            description: "Failed to load next player. Please refresh the page.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
+        // Update player selection and auction state
         setCurrentPlayerIndex(nextIndex);
         setSelectedPlayer(nextPlayer);
         setCurrentBid(nextPlayer.basePrice || 0.1); // Provide a fallback base price
-        setHighestBidder(null);
-        setHighestBidderName(null);
         setBidHistory([]);
-        setIsAuctionFinalized(false);
-        setIsPaid(false);
         
-        // Update upcoming players safely
+        // Update upcoming players
         if (players.length > nextIndex + 1) {
           setUpcomingPlayers(players.slice(nextIndex + 1, nextIndex + 6));
         } else {
@@ -828,20 +916,22 @@ const AuctionPage: React.FC = () => {
         setAiRecommendation(null);
         setBidRecommendation(null);
         
-        // Start new timer with slight delay to ensure state updates first
+        // Reset timer (important!)
+        setRemainingTime(30);
+        startAuctionTimer();
+        startAIBidCheckInterval(); // Ensure bots start bidding for the new player
+
+        // Immediately trigger bot bidding after a short delay
         setTimeout(() => {
-          startAuctionTimer();
-        }, 100);
+          checkAndProcessAIBids();
+        }, 1000);
         
         // Generate new AI recommendations if wallet is connected
-        if (isWalletConnected && selectedTeam && nextPlayer) {
+        if (isWalletConnected && nextPlayer) {
           setTimeout(() => {
             generateAiRecommendations(nextPlayer);
           }, 500);
         }
-        
-        // Reset bot bidders for this round
-        setActiveBotBidders([]);
         
         toast({
           title: "New Player Auction",
@@ -859,9 +949,22 @@ const AuctionPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error in moveToNextPlayer:", error);
+      
+      // Recovery mechanism
+      const nextIndex = currentPlayerIndex + 1;
+      if (nextIndex < players.length) {
+        // Force basic state update as fallback
+        setCurrentPlayerIndex(nextIndex);
+        setSelectedPlayer(players[nextIndex]);
+        setCurrentBid(players[nextIndex].basePrice || 0.1);
+        setBidHistory([]);
+        setRemainingTime(30);
+        startAuctionTimer();
+      }
+      
       toast({
         title: "Error",
-        description: "An error occurred while moving to the next player.",
+        description: "An error occurred while moving to the next player. Attempting to recover.",
         variant: "destructive",
       });
     }
@@ -900,7 +1003,7 @@ const AuctionPage: React.FC = () => {
 
   // Handle placing a bid
   const handlePlaceBid = (amount: number) => {
-    if (!isWalletConnected || remainingTime <= 0) {
+    if (!isWalletConnected || remainingTime <= 0 || paymentPending) {
       toast({
         title: "Cannot Place Bid",
         description: isWalletConnected ? "Auction for this player has ended" : "Please connect your wallet first",
@@ -977,7 +1080,7 @@ const AuctionPage: React.FC = () => {
       await startAutoBidding({
         maxAmount: maxAutoBidAmount,
         strategy: autoBidStrategy,
-        playerId: String(selectedPlayer.id),
+        playerId: String(selectedPlayer.name),
         currentBid: currentBid
       });
       
@@ -1004,9 +1107,6 @@ const AuctionPage: React.FC = () => {
     setWalletBalance(balance);
     setIsWalletConnected(true);
     setProvider(provider);
-    
-    // Auto-assign the default team to the user
-    setSelectedTeam(DEFAULT_USER_TEAM);
     
     // Check for moderator access
     import('@/lib/bot-wallets').then(({ isModeratorWallet, isAIWallet }) => {
@@ -1056,9 +1156,8 @@ const AuctionPage: React.FC = () => {
         currentBidder={highestBidder || ''}
         bidderName={highestBidderName || ''}
         bidHistory={bidHistory}
-        auctionStatus={remainingTime > 0 ? "Active" : "Sold"}
+        auctionStatus={finalAuctionStatus}
         moderatorMessage={`Bidding for ${selectedPlayer?.name || "Player"}`}
-        moderatorRecommendation={selectedPlayer ? `${selectedPlayer.name} is a ${selectedPlayer.role} with a base price of ${MONAD_CONFIG.nativeCurrency.symbol}${selectedPlayer.basePrice}` : ''}
         countdownTimer={remainingTime}
         activeBidders={activeBotBidders.length + (isWalletConnected ? 1 : 0)}
         onPlaceBid={handlePlaceBid}
@@ -1076,14 +1175,12 @@ const AuctionPage: React.FC = () => {
         walletAddress={walletAddress}
         aiRecommendation={aiRecommendation}
         isLoadingRecommendation={!aiRecommendation && isWalletConnected}
-        selectedTeam={selectedTeam}
         isPaid={isPaid}
         isAuctionFinalized={isAuctionFinalized}
         onPayFinalizedAmount={handleUserPayment}
         isProcessingPayment={isProcessingPayment}
         isCurrentUserWinner={!!isCurrentUserWinner}
         ownedNFTs={ownedPlayerNFTs}
-        isModerator={isModerator}
         currentPlayerIndex={currentPlayerIndex}
         playerQueue={players}
         setCurrentPlayerIndex={setCurrentPlayerIndex}
@@ -1126,7 +1223,7 @@ const AuctionPage: React.FC = () => {
           </div>
           
           {/* Quick Bidding Controls */}
-          {isWalletConnected && selectedPlayer && remainingTime > 0 && !isAuctionFinalized && (
+          {isWalletConnected && selectedPlayer && remainingTime > 0 && !isAuctionFinalized && !paymentPending && (
             <div className="flex items-center gap-2">
               <div className="relative">
                 <input

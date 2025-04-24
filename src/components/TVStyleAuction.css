@@ -56,6 +56,11 @@
   50% { background-color: rgba(239, 68, 68, 0.2); }
 }
 
+/* Enhanced Auction Platform Styles */
+body {
+  background: linear-gradient(to bottom, #050510, #0a0a1f);
+}
+
 /* General TV UI styling */
 .tv-auction-container {
   background-color: rgba(15, 23, 42, 0.95);
@@ -155,6 +160,16 @@
   border-bottom: 1px solid rgba(100, 116, 139, 0.2);
   font-size: 0.8rem;
   animation: slide-in 0.3s ease-out forwards;
+  transition: all 0.2s ease-in-out;
+  transform: translateZ(0);
+  background: linear-gradient(to right, 
+    rgba(30, 30, 60, 0.5), 
+    rgba(30, 30, 70, 0.5)
+  );
+}
+
+.bid-history-item:hover {
+  transform: translateY(-2px);
 }
 
 .bid-history-item:last-child {
@@ -180,6 +195,22 @@
   transform: translateY(0);
 }
 
+.btn-pulse {
+  animation: btnPulse 2s infinite;
+}
+
+@keyframes btnPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(79, 70, 229, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(79, 70, 229, 0);
+  }
+}
+
 /* Timer styles */
 .countdown-timer {
   font-family: monospace;
@@ -198,6 +229,21 @@
 
 .countdown-critical button {
   animation: pulse 1s infinite;
+}
+
+.timer-urgent {
+  animation: urgentPulse 0.8s infinite alternate;
+}
+
+@keyframes urgentPulse {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
 }
 
 /* Upcoming items carousel */
@@ -372,17 +418,37 @@
 .live-indicator {
   display: flex;
   align-items: center;
-  background-color: rgba(239, 68, 68, 0.2);
-  padding: 2px 6px;
+  padding: 4px 8px;
+  background: rgba(220, 38, 38, 0.2);
   border-radius: 12px;
+  border: 1px solid rgba(220, 38, 38, 0.3);
 }
 
 .live-dot {
   width: 8px;
   height: 8px;
+  background-color: #ef4444;
   border-radius: 50%;
-  background-color: rgb(239, 68, 68);
-  animation: liveFlash 1.5s infinite;
+  margin-right: 6px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Pulse animation for live dot */
+@keyframes pulse {
+  0% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+  }
+  
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 /* Payment Status Styling */
@@ -483,7 +549,19 @@
 
 /* Outbid flash animation for the whole page */
 body.outbid-flash {
-  animation: outbidAlert 0.8s ease;
+  animation: flash 0.5s;
+}
+
+@keyframes flash {
+  0% {
+    background-color: rgba(244, 63, 94, 0);
+  }
+  50% {
+    background-color: rgba(244, 63, 94, 0.2);
+  }
+  100% {
+    background-color: rgba(244, 63, 94, 0);
+  }
 }
 
 /* Custom scrollbar for bid history */
@@ -529,10 +607,7 @@ input[type="checkbox"] {
 /* Auction Platform Container */
 .auction-platform {
   min-height: 100vh;
-  background-image: url('/public/assets/cricket-stadium-blur.jpg');
-  background-size: cover;
-  background-position: center;
-  background-attachment: fixed;
+  background: linear-gradient(to bottom, #050510, #0a0a1f);
 }
 
 .auction-platform::before {
@@ -544,6 +619,49 @@ input[type="checkbox"] {
   bottom: 0;
   background: linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85));
   z-index: -1;
+}
+
+/* Neon glow effects */
+.neon-border {
+  box-shadow: 0 0 10px rgba(88, 101, 242, 0.3), 
+              0 0 20px rgba(88, 101, 242, 0.2), 
+              inset 0 0 8px rgba(88, 101, 242, 0.1);
+}
+
+.neon-text {
+  text-shadow: 0 0 5px rgba(88, 101, 242, 0.7);
+}
+
+.neon-blue {
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3), 
+              0 0 20px rgba(59, 130, 246, 0.2);
+}
+
+.neon-purple {
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.3), 
+              0 0 20px rgba(139, 92, 246, 0.2);
+}
+
+.neon-green {
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3), 
+              0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+/* Glass morphism effects */
+.glass-panel {
+  background: rgba(10, 10, 25, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(88, 101, 242, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* Card hover effects */
+.hover-scale {
+  transition: all 0.3s ease;
+}
+
+.hover-scale:hover {
+  transform: translateY(-3px) scale(1.01);
 }
 
 /* Player image styling */
@@ -624,5 +742,179 @@ img:not([src])::before, img[src=""]::before, img[src="#"]::before {
 @keyframes shine {
   to {
     background-position-x: -200%;
+  }
+}
+
+/* Player card spotlight effect */
+.spotlight {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight:after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0) 80%
+  );
+  opacity: 0;
+  transform: scale(0.8);
+  transition: opacity 0.4s, transform 0.4s;
+}
+
+.spotlight:hover:after {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Glowing text effect */
+.glow-text {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  animation: glowText 2s infinite alternate;
+}
+
+@keyframes glowText {
+  from {
+    text-shadow: 0 0 5px rgba(88, 101, 242, 0.5),
+                 0 0 10px rgba(88, 101, 242, 0.3);
+  }
+  to {
+    text-shadow: 0 0 20px rgba(88, 101, 242, 0.8),
+                 0 0 35px rgba(88, 101, 242, 0.6);
+  }
+}
+
+/* Smooth fade-in effect for elements */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card logo floating effect */
+.float-logo {
+  animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+/* Stats card hover effect */
+.stat-card {
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, rgba(30, 30, 70, 0.5), rgba(30, 30, 50, 0.5));
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(30, 30, 60, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(88, 101, 242, 0.5);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(88, 101, 242, 0.7);
+}
+
+/* Shimmer loading effect */
+.shimmer {
+  position: relative;
+  background: linear-gradient(90deg, 
+    rgba(30, 30, 60, 0.5), 
+    rgba(40, 40, 80, 0.5), 
+    rgba(30, 30, 60, 0.5)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Player card highlight effect */
+.highlight-player {
+  position: relative;
+}
+
+.highlight-player::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  background: linear-gradient(45deg, 
+    #4f46e5, #2563eb, #7c3aed, #4f46e5
+  );
+  z-index: -1;
+  border-radius: inherit;
+  animation: borderAnimation 3s linear infinite;
+  background-size: 300% 300%;
+}
+
+@keyframes borderAnimation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Enhanced Mobile Styles */
+@media (max-width: 640px) {
+  .bid-history-item {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .stat-card {
+    padding: 8px;
   }
 }

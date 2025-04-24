@@ -8,25 +8,26 @@ body {
 
 @layer base {
   :root {
-    --background: 240 10% 3.9%;
+    --background: 240 10% 4%;
     --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
+    --card: 240 17% 8%;
+    --card-foreground: 0 0% 95%;
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 235 86% 65%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 240 3.7% 15.9%;
+    --secondary: 240 19% 16%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --muted: 240 21% 12%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 224 71% 45%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 217.2 91.2% 59.8%;
+    --border: 240 40% 20%;
+    --input: 240 40% 16%;
+    --ring: 228 100% 64%;
+    --shadow: 0 10px 30px -10px rgba(2, 6, 23, 0.8), 0 0 10px rgba(82, 109, 254, 0.2);
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -41,6 +42,11 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --error: 0 84% 60%;
+    --gradient-primary: linear-gradient(to right, rgb(59, 130, 246), rgb(99, 102, 241));
+    --gradient-dark: linear-gradient(to bottom, rgb(15, 23, 42), rgb(10, 10, 40));
     
     /* IPL Auction Theme Variables */
     --ipl-gold: 45 100% 50%;
@@ -100,6 +106,43 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  input, textarea, select {
+    background-color: hsl(var(--secondary)) !important;
+    border-color: hsl(var(--border)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    box-shadow: 0 0 10px rgba(82, 109, 254, 0.3);
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: rgba(99, 102, 241, 0.8) !important;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+  }
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--secondary));
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.5);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.7);
   }
 }
 
@@ -174,6 +217,94 @@ body {
     content: "";
     @apply absolute -inset-0.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500
       rounded-xl opacity-40 blur transition duration-1000 animate-gradient-xy;
+  }
+
+  /* Enhanced card styles */
+  .enhanced-card {
+    background: hsl(var(--secondary));
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+  }
+
+  .enhanced-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.7), 0 0 15px rgba(99, 102, 241, 0.4);
+  }
+
+  /* Glass morphism effect */
+  .glass-morph {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Background gradient for layout */
+  .bg-gradient-dark {
+    background: var(--gradient-dark);
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(45deg, #4f46e5, #8b5cf6, #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Loading animation */
+  .loader {
+    width: 48px;
+    height: 48px;
+    border: 5px solid rgba(99, 102, 241, 0.3);
+    border-radius: 50%;
+    border-top-color: rgba(99, 102, 241, 1);
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Custom badge styles */
+  .badge-premium {
+    background: linear-gradient(45deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+  }
+}
+
+@layer utilities {
+  /* Add some animation classes that can be used globally */
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-8px); }
+    100% { transform: translateY(0px); }
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s infinite;
+  }
+
+  @keyframes pulse-subtle {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+  }
+
+  .animate-glow {
+    animation: glow 2s infinite alternate;
+  }
+
+  @keyframes glow {
+    from { box-shadow: 0 0 5px rgba(99, 102, 241, 0.5); }
+    to { box-shadow: 0 0 20px rgba(99, 102, 241, 0.8); }
   }
 }
 

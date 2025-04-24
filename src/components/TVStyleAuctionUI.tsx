@@ -59,10 +59,22 @@ interface TVStyleAuctionUIProps {
   };
   isLoadingRecommendation?: boolean;
   walletAddress?: string | null;
-  userTeam: any; // User's default team
+  userTeam: {
+    name?: string;
+    logoUrl?: string;
+    owner?: string;
+    budget?: number;
+    spent?: number;
+    players?: {
+      name: string;
+      role: string;
+      price?: number;
+      image?: string;
+    }[];
+  }; // User's default team
   isPaid?: boolean;
   isAuctionFinalized?: boolean;
-  onPayFinalizedAmount?: () => Promise<void>;
+  onPayFinalizedAmount?: () => Promise<{ success: boolean; error?: string }>;
   isProcessingPayment?: boolean;
   isCurrentUserWinner?: boolean;
   ownedNFTs?: string[];
@@ -73,117 +85,235 @@ interface TVStyleAuctionUIProps {
   setUserBidInput?: (value: string) => void;
 }
 
-// Status badge component
+// Enhanced Status Badge component
 const StatusBadge: React.FC<{
   status: string;
   isPaid?: boolean;
 }> = ({ status, isPaid }) => {
   if (status === "Sold") {
     return (
-      <Badge className={`px-3 py-1 text-sm ${
-        isPaid 
-          ? "bg-green-600 text-white" 
-          : "bg-amber-600 text-white"
-      }`}>
-        {isPaid ? "SOLD & PAID" : "SOLD (PAYMENT PENDING)"}
-      </Badge>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      >
+        <Badge className={`px-3 py-1 text-sm ${
+          isPaid 
+            ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white neon-green' 
+            : 'bg-gradient-to-r from-amber-600 to-yellow-600 text-white'
+        }`}>
+          {isPaid ? "SOLD & PAID" : "SOLD (PAYMENT PENDING)"}
+        </Badge>
+      </motion.div>
+    );
+  }
+  
+  if (status === "Unsold") {
+    return (
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      >
+        <Badge className="px-3 py-1 text-sm bg-gradient-to-r from-red-600 to-pink-600 text-white">
+          UNSOLD
+        </Badge>
+      </motion.div>
     );
   }
 
   return (
-    <Badge className={`px-3 py-1 text-sm ${
-      status === "Active" 
-        ? "bg-green-600 text-white" 
-        : status === "Upcoming"
-        ? "bg-purple-600 text-white"
-        : "bg-blue-600 text-white"
-    }`}>
-      {status}
-    </Badge>
+    <motion.div
+      animate={{ 
+        scale: status === "Active" ? [1, 1.05, 1] : 1
+      }}
+      transition={{ 
+        repeat: status === "Active" ? Infinity : 0, 
+        duration: 2
+      }}
+    >
+      <Badge className={`px-3 py-1 text-sm ${
+        status === "Active" 
+          ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white' 
+          : status === "Upcoming"
+          ? 'bg-gradient-to-r from-purple-600 to-violet-600 text-white'
+          : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
+      }`}>
+        {status}
+      </Badge>
+    </motion.div>
   );
 };
 
-// Payment status component
-const PaymentStatus: React.FC<{
-  isCurrentUserWinner: boolean;
-  isPaid: boolean;
-  currentBid: number;
-  currencySymbol: string;
-  isAIWinner: boolean;
-  isProcessingPayment: boolean;
-  onPayFinalizedAmount?: () => Promise<void>;
-}> = ({ 
-  isCurrentUserWinner, 
-  isPaid, 
-  currentBid, 
-  currencySymbol, 
-  isAIWinner,
-  isProcessingPayment,
-  onPayFinalizedAmount
-}) => {
-  if (!isCurrentUserWinner && !isAIWinner) return null;
+// Player Card with Glass Morphism and animation effects
+const EnhancedPlayerCard: React.FC<{player: any}> = ({ player }) => {
+  // Always call hooks in the same order, regardless of conditions
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
-  if (isPaid) {
-    return (
-      <Card className="payment-complete bg-green-900/20 border-green-500/30 p-4 mt-3">
-        <div className="flex items-center text-green-400 mb-2">
-          <Check className="h-5 w-5 mr-1.5" />
-          <span className="font-semibold">Payment Complete</span>
-        </div>
-        <p className="text-sm text-green-100">
-          {isAIWinner 
-            ? 'AI bot payment was processed automatically.' 
-            : `Your payment of ${currencySymbol}${currentBid.toFixed(2)} was successful.`}
-        </p>
-        <div className="mt-2 text-xs text-blue-300 flex items-center">
-          <Trophy className="h-4 w-4 mr-1 text-yellow-400" />
-          <span>Player NFT will be minted and transferred to your wallet</span>
-        </div>
-      </Card>
-    );
-  }
-  
-  if (isAIWinner) {
-    return (
-      <Card className="payment-processing bg-blue-900/20 border-blue-500/30 p-4 mt-3">
-        <div className="flex items-center text-blue-400 mb-2">
-          <RotateCw className="h-5 w-5 mr-1.5 animate-spin" />
-          <span className="font-semibold">AI Payment Processing</span>
-        </div>
-        <p className="text-sm text-blue-100">
-          The AI bot is automatically processing the payment for this player.
-        </p>
-      </Card>
-    );
-  }
-  
-  if (isCurrentUserWinner && onPayFinalizedAmount) {
-    return (
-      <Card className="payment-required bg-amber-900/20 border-amber-500/30 p-4 mt-3">
-        <div className="flex items-center text-amber-400 mb-2">
-          <BellRing className="h-5 w-5 mr-1.5" />
-          <span className="font-semibold">Payment Required</span>
-        </div>
-        <p className="text-sm text-amber-100 mb-3">
-          You won the auction! Please pay {currencySymbol}{currentBid.toFixed(2)} to complete your purchase.
-        </p>
-        <Button 
-          onClick={onPayFinalizedAmount}
-          disabled={isProcessingPayment}
-          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
-        >
-          {isProcessingPayment ? (
-            <><RotateCw className="h-4 w-4 mr-2 animate-spin" /> Processing...</>
-          ) : (
-            <>Pay {currencySymbol}{currentBid.toFixed(2)} Now</>
-          )}
-        </Button>
-      </Card>
-    );
-  }
-  
-  return null;
+  const getOptimizedPlayerImage = (imageUrl: string | undefined) => {
+    if (!imageUrl) return 'https://ui-avatars.com/api/?name=Unknown+Player&background=152238&color=fff&size=512';
+    
+    // Fix assets.iplt20.com URLs by using local public assets instead
+    if (imageUrl.includes('assets.iplt20.com')) {
+      const fileName = imageUrl.split('/').pop(); // Get the file name from URL
+      return `/assets/players/${fileName}`; // Use local assets folder
+    }
+    
+    return imageUrl;
+  };
+
+  // Set imageLoaded to true by default if there's no image
+  useEffect(() => {
+    if (!player?.imageUrl) {
+      setImageLoaded(true);
+    }
+  }, [player?.imageUrl]);
+
+  return (
+    <motion.div 
+      className="upcoming-player-card glass-panel hover-scale spotlight"
+      whileHover={{ 
+        y: -5,
+        boxShadow: "0px 10px 30px rgba(0, 0, 0, 0.2), 0 0 15px rgba(59, 130, 246, 0.3)"
+      }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="relative h-32 overflow-hidden rounded-t-lg">
+        {!imageError ? (
+          <img 
+            src={getOptimizedPlayerImage(player.imageUrl)} 
+            alt={player.name} 
+            className={`w-full h-full object-contain bg-gradient-to-b from-[#0f172a] to-[#1e293b] ${!imageLoaded ? 'opacity-0' : 'opacity-100'}`}
+            onError={() => {
+              setImageError(true);
+              setImageLoaded(true);
+            }}
+            onLoad={() => setImageLoaded(true)}
+            style={{ transition: 'opacity 0.3s ease-in-out' }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-[#0f172a] to-[#1e293b]">
+            <User className="h-12 w-12 text-indigo-600/40" />
+          </div>
+        )}
+        
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-b from-[#0f172a] to-[#1e293b]">
+            <div className="player-image-skeleton" />
+          </div>
+        )}
+        
+        {/* Role Badge */}
+        {player.role && (
+          <div className="absolute top-2 right-2">
+            <Badge className={`text-xs px-2 py-0.5 ${
+              player.role.toLowerCase().includes('bat') ? 'bg-blue-600/90' :
+              player.role.toLowerCase().includes('bowl') ? 'bg-red-600/90' :
+              'bg-purple-600/90'
+            } backdrop-blur-sm`}>
+              {player.role}
+            </Badge>
+          </div>
+        )}
+      </div>
+      
+      <div className="p-3 backdrop-blur-sm bg-[#151530]/80">
+        <h4 className="font-medium text-white truncate">{player.name}</h4>
+        {player.nationality && (
+          <p className="text-xs text-indigo-400">{player.nationality}</p>
+        )}
+        {player.basePrice && (
+          <div className="mt-1 flex justify-between items-center">
+            <span className="text-xs text-indigo-400">Base Price:</span>
+            <span className="text-sm font-medium text-amber-300">${player.basePrice}</span>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
 };
+
+// StatCard component with hover effects
+const StatCard: React.FC<{label: string, value: string | number}> = ({ label, value }) => (
+  <motion.div 
+    className="stat-card neon-blue glass-panel rounded-lg p-3"
+    whileHover={{ y: -2, scale: 1.02 }}
+    transition={{ duration: 0.2 }}
+  >
+    <span className="text-xs text-indigo-400">{label}</span>
+    <p className="text-xl font-bold text-white">{value}</p>
+  </motion.div>
+);
+
+// BidHistoryItem component with animation
+const BidHistoryItem: React.FC<{
+  bid: any,
+  isCurrentUser: boolean,
+  isAIBot: boolean,
+  currencySymbol: string,
+  formatWalletAddress: (address: string | null | undefined) => string,
+  isPaid?: boolean
+}> = ({ bid, isCurrentUser, isAIBot, currencySymbol, formatWalletAddress, isPaid }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3 }}
+    className={`bid-history-item mb-2 p-3 rounded-lg ${
+      isCurrentUser 
+        ? 'bg-gradient-to-r from-indigo-900/30 to-blue-900/20 border border-indigo-600/40 neon-blue' 
+        : isAIBot
+          ? 'bg-gradient-to-r from-purple-900/20 to-indigo-900/20 border border-purple-700/30 neon-purple'
+          : 'glass-panel border border-indigo-900/20'
+    }`}
+  >
+    <div className="flex justify-between items-center">
+      <div className="flex items-center gap-2">
+        {bid.teamLogo && (
+          <div className="w-6 h-6 rounded-full overflow-hidden bg-[#0d0d1f] flex-shrink-0">
+            <img 
+              src={bid.teamLogo} 
+              alt={bid.botName || "Team"} 
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+        {!bid.teamLogo && (
+          <div className={`w-2 h-2 rounded-full ${
+            isCurrentUser ? 'bg-blue-500' : 
+            isAIBot ? 'bg-purple-500' : 'bg-gray-500'
+          }`}></div>
+        )}
+        <span className="font-medium text-white">
+          {isCurrentUser ? 'You' : 
+            bid.botName || bid.bidderName || formatWalletAddress(bid.bidder)}
+        </span>
+      </div>
+      <div>
+        <span className="font-bold text-white">
+          {currencySymbol}{bid.amount.toFixed(4)}
+        </span>
+        {bid.status && (
+          <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
+            isPaid && bid.status === 'SOLD' ? 'bg-emerald-600 text-white' : 
+            bid.status === 'SOLD' ? 'bg-amber-600 text-white' : 
+            bid.status === 'UNSOLD' ? 'bg-red-600 text-white' : 
+            'bg-blue-600 text-white'
+          }`}>
+            {isPaid && bid.status === 'SOLD' ? 'PAID' : bid.status}
+          </span>
+        )}
+      </div>
+    </div>
+    
+    {/* Timestamp if available */}
+    {bid.timestamp && (
+      <div className="mt-1 text-xs text-indigo-400 text-right">
+        {new Date(bid.timestamp).toLocaleTimeString()}
+      </div>
+    )}
+  </motion.div>
+);
 
 // Main component
 const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
@@ -225,6 +355,9 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
   // Local state
   const [showConfetti, setShowConfetti] = useState<boolean>(false);
   const [prevBidder, setPrevBidder] = useState<string | null>(null);
+  const [moderatorSpeech, setModeratorSpeech] = useState<string>('');
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   
   // Sound instances
   const bidSound = React.useRef<Howl | null>(null);
@@ -262,6 +395,112 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
     };
   }, []);
 
+  // Text-to-speech for moderator
+  const speakModeratorText = (text: string) => {
+    if (!isTTSEnabled || !text) return;
+    
+    // Cancel any ongoing speech
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    
+    // Use browser's TTS
+    if (window.speechSynthesis) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      // Configure voice settings for a more authoritative auctioneer voice
+      utterance.rate = 1.0;  // Speed of speech
+      utterance.pitch = 1.1; // Slightly higher pitch
+      utterance.volume = 1.0; // Full volume
+      
+      // Try to find a male voice for the auctioneer
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(voice => 
+        voice.name.includes("Male") || 
+        voice.name.includes("David") || 
+        voice.name.includes("Mark") ||
+        voice.name.includes("James")
+      );
+      
+      if (preferredVoice) {
+        utterance.voice = preferredVoice;
+      }
+      
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+  
+  // Generate speech based on auction state changes
+  useEffect(() => {
+    if (!playerInfo || !isTTSEnabled) return;
+    
+    let speechText = '';
+    
+    if (auctionStatus === "Active" && playerInfo?.name) {
+      // New player announcement
+      if (!moderatorSpeech.includes(playerInfo.name)) {
+        speechText = `Now auctioning ${playerInfo.name}, ${playerInfo.role || 'Player'} with a base price of ${currencySymbol}${playerInfo.basePrice || '0'}.`;
+      }
+    } else if (auctionStatus === "Sold") {
+      // Player sold announcement
+      const winner = bidderName || formatWalletAddress(currentBidder);
+      speechText = `${playerInfo.name} sold to ${winner} for ${currencySymbol}${currentBid.toFixed(2)}!`;
+      
+      // Add additional commentary based on AI recommendation if available
+      if (aiRecommendation) {
+        const bidValue = aiRecommendation.shouldBid ? "good value" : "high price";
+        speechText += ` That's a ${bidValue} for this player.`;
+      }
+    }
+    
+    if (speechText && speechText !== moderatorSpeech) {
+      setModeratorSpeech(speechText);
+      speakModeratorText(speechText);
+    }
+  }, [playerInfo?.name, auctionStatus, isTTSEnabled, bidderName, currentBid, aiRecommendation]);
+  
+  // Announce next bid when the highest bidder changes
+  useEffect(() => {
+    if (currentBidder && prevBidder !== currentBidder && auctionStatus === "Active" && isTTSEnabled) {
+      // Get bidder name
+      const bidderDisplayName = bidderName || formatWalletAddress(currentBidder);
+      
+      // Create speech for bid
+      const bidSpeech = `${bidderDisplayName} bids ${currencySymbol}${currentBid.toFixed(2)}!`;
+      
+      // Play sound and speak with small delay to avoid overlap
+      if (outbidSound.current && prevBidder) {
+        outbidSound.current.play();
+        setTimeout(() => {
+          speakModeratorText(bidSpeech);
+        }, 500);
+      } else if (bidSound.current) {
+        bidSound.current.play();
+        setTimeout(() => {
+          speakModeratorText(bidSpeech);
+        }, 500);
+      }
+    }
+    
+    // Update previous bidder
+    setPrevBidder(currentBidder);
+  }, [currentBidder, bidderName, currentBid, auctionStatus, isTTSEnabled]);
+  
+  // Announce time remaining when it's low
+  useEffect(() => {
+    if (isTTSEnabled && auctionStatus === "Active" && countdownTimer === 10) {
+      speakModeratorText("10 seconds remaining!");
+    } else if (isTTSEnabled && auctionStatus === "Active" && countdownTimer === 5) {
+      speakModeratorText("5 seconds left to bid!");
+    } else if (isTTSEnabled && auctionStatus === "Active" && countdownTimer === 3) {
+      speakModeratorText("Going once...");
+    } else if (isTTSEnabled && auctionStatus === "Active" && countdownTimer === 2) {
+      speakModeratorText("Going twice...");
+    } else if (isTTSEnabled && auctionStatus === "Active" && countdownTimer === 1) {
+      speakModeratorText("Final call!");
+    }
+  }, [countdownTimer, auctionStatus, isTTSEnabled]);
+
   // Track bidder changes for outbid notifications
   useEffect(() => {
     if (currentBidder && prevBidder && currentBidder !== prevBidder) {
@@ -295,17 +534,16 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
         const duration = 3 * 1000;
         const end = Date.now() + duration;
         
-        // FIXED: Use confetti without web workers to avoid CSP issues
+        // FIXED: Use confetti without explicit worker options to avoid type errors
         const frame = () => {
           try {
-            // Use the non-worker based approach by passing {useWorker: false}
+            // Use simpler confetti options without useWorker
             confetti({
               particleCount: 3,
               angle: 60,
               spread: 70,
               origin: { x: 0 },
-              colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff'],
-              useWorker: false // Explicitly disable web workers
+              colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
             });
             
             confetti({
@@ -313,8 +551,7 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
               angle: 120,
               spread: 70,
               origin: { x: 1 },
-              colors: ['#ff9900', '#ff00ff', '#00ffff', '#00ff99', '#9900ff'],
-              useWorker: false // Explicitly disable web workers
+              colors: ['#ff9900', '#ff00ff', '#00ffff', '#00ff99', '#9900ff']
             });
             
             if (Date.now() < end) {
@@ -332,6 +569,54 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
       }
     }
   }, [auctionStatus, isTTSEnabled, showConfetti, isCurrentUserWinner]);
+
+  // Show payment modal when someone wins and it's finalized
+  useEffect(() => {
+    if (isAuctionFinalized && isCurrentUserWinner && !isPaid) {
+      setShowPaymentModal(true);
+      
+      // Play winning sound when user wins
+      if (isTTSEnabled && winSound.current) {
+        winSound.current.play();
+      }
+      
+      // Show confetti for user win
+      setShowConfetti(true);
+      const duration = 3 * 1000;
+      const end = Date.now() + duration;
+      
+      const frame = () => {
+        try {
+          confetti({
+            particleCount: 3,
+            angle: 60,
+            spread: 70,
+            origin: { x: 0 },
+            colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
+          });
+          
+          confetti({
+            particleCount: 3,
+            angle: 120,
+            spread: 70,
+            origin: { x: 1 },
+            colors: ['#ff9900', '#ff00ff', '#00ffff', '#00ff99', '#9900ff']
+          });
+          
+          if (Date.now() < end) {
+            requestAnimationFrame(frame);
+          } else {
+            setShowConfetti(false);
+          }
+        } catch (error) {
+          console.error("Error with confetti animation:", error);
+          setShowConfetti(false);
+        }
+      };
+      
+      frame();
+    }
+  }, [isAuctionFinalized, isCurrentUserWinner, isPaid, isTTSEnabled]);
 
   // Format wallet address for display
   const formatWalletAddress = (address: string | null | undefined) => {
@@ -366,21 +651,115 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
   // Bid suggestions
   const bidSuggestions = getNextBidSuggestions();
 
-  // Fix player image URL if needed
-  const getOptimizedPlayerImage = (imageUrl: string | undefined) => {
-    if (!imageUrl) return 'https://ui-avatars.com/api/?name=Unknown+Player&background=152238&color=fff&size=512';
-    
-    // Fix assets.iplt20.com URLs by using local public assets instead
-    if (imageUrl.includes('assets.iplt20.com')) {
-      const fileName = imageUrl.split('/').pop(); // Get the file name from URL
-      return `/assets/players/${fileName}`; // Use local assets folder
-    }
-    
-    return imageUrl;
-  };
-
   return (
     <div className="auction-platform w-full bg-[#0a0a16] text-white">
+      {/* Payment Modal for winners - Enhanced for MetaMask transactions */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowPaymentModal(false)}></div>
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+            className="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl shadow-2xl p-6 max-w-md w-full border border-green-500/40"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-6">
+                <div className="w-20 h-20 rounded-full bg-green-800/30 flex items-center justify-center mx-auto mb-4">
+                  <img 
+                    src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" 
+                    className="w-14 h-14" 
+                    alt="MetaMask" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-1">Complete Purchase</h2>
+                <p className="text-emerald-400">Send MONAD directly to the auction moderator</p>
+              </div>
+              
+              <p className="text-lg text-emerald-400 mb-4">You won the bid for {playerInfo?.name}!</p>
+              
+              <div className="bg-slate-900/70 p-4 rounded-lg mb-6 w-full">
+                <div className="flex justify-between mb-1">
+                  <span className="text-slate-400">Winning bid:</span>
+                  <span className="text-white font-bold">{currencySymbol}{currentBid.toFixed(4)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Your balance:</span>
+                  <span className="text-emerald-400 font-bold">{currencySymbol}{userWalletBalance.toFixed(4)}</span>
+                </div>
+              </div>
+              
+              <div className="bg-slate-900/70 border border-yellow-500/20 p-4 rounded-lg mb-6 w-full">
+                <div className="flex items-start gap-3">
+                  <div className="text-yellow-500 mt-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                      <line x1="12" y1="9" x2="12" y2="13"></line>
+                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm text-yellow-500 font-medium mb-1">Important</p>
+                    <p className="text-xs text-slate-300">
+                      By proceeding, your MetaMask wallet will open to confirm this transaction. The transaction sends {currencySymbol}{currentBid.toFixed(4)} directly to the auction moderator.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <motion.button
+                onClick={async () => {
+                  if (onPayFinalizedAmount) {
+                    setPaymentError(null); // clear any previous error
+                    try {
+                      const result = await onPayFinalizedAmount();
+                      if (result && result.success) {
+                        setShowPaymentModal(false);
+                      } else if (result && result.error) {
+                        setPaymentError(result.error);
+                      }
+                    } catch (err) {
+                      setPaymentError((err as any)?.message || 'Payment failed. Please try again.');
+                    }
+                  }
+                }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                disabled={isProcessingPayment}
+                className="w-full py-3 px-6 rounded-lg bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white font-medium flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/30"
+              >
+                {isProcessingPayment ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <img 
+                      src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg" 
+                      className="w-6 h-6" 
+                      alt="MetaMask" />
+                    Pay Now with MetaMask
+                  </>
+                )}
+              </motion.button>
+              
+              {paymentError && (
+                <div className="mt-2 text-red-400 text-sm">{paymentError}</div>
+              )}
+              
+              <button 
+                onClick={() => setShowPaymentModal(false)}
+                className="mt-3 text-sm text-slate-400 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+      
       {/* Header */}
       <header className="sticky top-0 z-50 bg-[#090918]/90 backdrop-blur-md border-b border-indigo-900/40 shadow-md shadow-indigo-900/10">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -513,7 +892,12 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
                     <div className="absolute inset-2 rounded-lg overflow-hidden border border-indigo-500/30 shadow-lg shadow-indigo-500/20">
                       {playerInfo?.imageUrl ? (
                         <img 
-                          src={getOptimizedPlayerImage(playerInfo.imageUrl)} 
+                          src={playerInfo.imageUrl && typeof playerInfo.imageUrl === 'string' 
+                            ? (playerInfo.imageUrl.includes('assets.iplt20.com')
+                              ? `/assets/players/${playerInfo.imageUrl.split('/').pop()}`
+                              : playerInfo.imageUrl)
+                            : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(playerInfo.name || 'Player') + '&background=152238&color=fff&size=512'
+                          } 
                           alt={playerInfo.name || 'Player'} 
                           className="w-full h-full object-contain bg-gradient-to-b from-slate-900 to-black"
                           onError={(e) => {
@@ -560,59 +944,35 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
                   {playerInfo && playerInfo.stats && (
                     <div className="stats-grid grid grid-cols-2 md:grid-cols-2 gap-4 mb-4">
                       {playerInfo.stats.battingAverage && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Batting Avg</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.stats.battingAverage}</p>
-                        </div>
+                        <StatCard label="Batting Avg" value={playerInfo.stats.battingAverage} />
                       )}
                       
                       {playerInfo.stats.bowlingAverage && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Bowling Avg</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.stats.bowlingAverage}</p>
-                        </div>
+                        <StatCard label="Bowling Avg" value={playerInfo.stats.bowlingAverage} />
                       )}
                       
                       {playerInfo.stats.strikeRate && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Strike Rate</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.stats.strikeRate}</p>
-                        </div>
+                        <StatCard label="Strike Rate" value={playerInfo.stats.strikeRate} />
                       )}
                       
                       {(playerInfo.stats.economyRate || playerInfo.stats.economy) && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Economy</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.stats.economyRate || playerInfo.stats.economy}</p>
-                        </div>
+                        <StatCard label="Economy" value={playerInfo.stats.economyRate || playerInfo.stats.economy} />
                       )}
                       
                       {(playerInfo.stats.matchesPlayed || playerInfo.stats.matches) && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Matches</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.stats.matchesPlayed || playerInfo.stats.matches}</p>
-                        </div>
+                        <StatCard label="Matches" value={playerInfo.stats.matchesPlayed || playerInfo.stats.matches} />
                       )}
                       
                       {playerInfo.age && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Age</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.age} yrs</p>
-                        </div>
+                        <StatCard label="Age" value={`${playerInfo.age} yrs`} />
                       )}
                       
                       {playerInfo.stats.totalRuns && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Total Runs</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.stats.totalRuns}</p>
-                        </div>
+                        <StatCard label="Total Runs" value={playerInfo.stats.totalRuns} />
                       )}
                       
                       {(playerInfo.stats.totalWickets || playerInfo.stats.wickets) && (
-                        <div className="stat-card bg-[#15153a] rounded-lg p-3 border border-indigo-900/30">
-                          <span className="text-xs text-indigo-400">Total Wickets</span>
-                          <p className="text-xl font-bold text-white">{playerInfo.stats.totalWickets || playerInfo.stats.wickets}</p>
-                        </div>
+                        <StatCard label="Total Wickets" value={playerInfo.stats.totalWickets || playerInfo.stats.wickets} />
                       )}
                     </div>
                   )}
@@ -628,10 +988,28 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
                     {currentBidder && (
                       <div className="flex justify-between items-center">
                         <span className="text-indigo-300">Highest Bidder</span>
-                        <span className="font-medium text-white">
-                          {bidderName || 
-                            (isAIBotAddress(currentBidder) ? "AI Bot" : formatWalletAddress(currentBidder))}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {isWinnerAIBot && !isPaid && auctionStatus === "Sold" && (
+                            <div className="flex items-center gap-1">
+                              <span className="relative flex h-2.5 w-2.5 mr-0.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
+                              </span>
+                              <span className="text-xs text-yellow-400">Payment pending</span>
+                            </div>
+                          )}
+                          {isWinnerAIBot && isPaid && auctionStatus === "Sold" && (
+                            <div className="flex items-center gap-1">
+                              <span className="relative flex h-2.5 w-2.5 mr-0.5">
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                              </span>
+                              <span className="text-xs text-emerald-400">Payment complete</span>
+                            </div>
+                          )}
+                          <span className="font-medium text-white">
+                            {bidderName || formatWalletAddress(currentBidder)}
+                          </span>
+                        </div>
                       </div>
                     )}
                     
@@ -641,19 +1019,6 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
                       <span className="font-medium text-white">{activeBidders}</span>
                     </div>
                   </div>
-                  
-                  {/* Payment Status (if applicable) */}
-                  {isAuctionFinalized && (
-                    <PaymentStatus
-                      isCurrentUserWinner={isCurrentUserWinner}
-                      isPaid={isPaid}
-                      currentBid={currentBid}
-                      currencySymbol={currencySymbol}
-                      isAIWinner={isWinnerAIBot}
-                      isProcessingPayment={isProcessingPayment}
-                      onPayFinalizedAmount={onPayFinalizedAmount}
-                    />
-                  )}
                 </div>
               </div>
               
@@ -791,42 +1156,7 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
               
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {upcomingPlayers.slice(0, 3).map((player, index) => (
-                  <div 
-                    key={player.id || index}
-                    className="upcoming-player-card bg-[#15153a] rounded-lg overflow-hidden border border-indigo-800/30"
-                  >
-                    <div className="relative h-32">
-                      {player.imageUrl ? (
-                        <img 
-                          src={getOptimizedPlayerImage(player.imageUrl)} 
-                          alt={player.name} 
-                          className="w-full h-full object-contain bg-gradient-to-b from-slate-900 to-black"
-                          onError={(e) => {
-                            // Fallback if image fails to load
-                            (e.target as HTMLImageElement).src = 'https://ui-avatars.com/api/?name=' + 
-                              encodeURIComponent(player.name || 'Player') + '&background=152238&color=fff&size=256';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-[#1a1a40]">
-                          <User className="h-12 w-12 text-indigo-600/40" />
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="p-3">
-                      <h4 className="font-medium text-white truncate">{player.name}</h4>
-                      {player.nationality && (
-                        <p className="text-xs text-indigo-400">{player.nationality}</p>
-                      )}
-                      {player.basePrice && (
-                        <div className="mt-1 flex justify-between items-center">
-                          <span className="text-xs text-indigo-400">Base Price:</span>
-                          <span className="text-sm font-medium text-white">{currencySymbol}{player.basePrice}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <EnhancedPlayerCard key={player.id || index} player={player} />
                 ))}
               </div>
             </div>
@@ -868,57 +1198,15 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
                         const isAIBot = isAIBotAddress(bid.bidder);
                         
                         return (
-                          <div 
+                          <BidHistoryItem 
                             key={index}
-                            className={`bid-history-item mb-2 p-3 rounded-lg border ${
-                              isCurrentUser 
-                                ? 'bg-indigo-900/30 border-indigo-600/40' 
-                                : isAIBot
-                                  ? 'bg-purple-900/20 border-purple-700/30'
-                                  : 'bg-[#15153a] border-indigo-900/20'
-                            }`}
-                          >
-                            <div className="flex justify-between items-center">
-                              <div className="flex items-center gap-2">
-                                {bid.teamLogo && (
-                                  <div className="w-6 h-6 rounded-full overflow-hidden bg-[#0d0d1f] flex-shrink-0">
-                                    <img 
-                                      src={bid.teamLogo} 
-                                      alt={bid.botName || "Team"} 
-                                      className="w-full h-full object-cover"
-                                    />
-                                  </div>
-                                )}
-                                {!bid.teamLogo && (
-                                  <div className={`w-2 h-2 rounded-full ${
-                                    isCurrentUser ? 'bg-blue-500' : 
-                                    isAIBot ? 'bg-purple-500' : 'bg-gray-500'
-                                  }`}></div>
-                                )}
-                                <span className="font-medium text-white">
-                                  {isCurrentUser ? 'You' : 
-                                    bid.botName || bid.bidderName || formatWalletAddress(bid.bidder)}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="font-bold text-white">
-                                  {currencySymbol}{bid.amount.toFixed(4)}
-                                </span>
-                                {bid.status && (
-                                  <span className="ml-2 text-xs bg-green-600 text-white px-2 py-0.5 rounded">
-                                    {bid.status}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            
-                            {/* Timestamp if available */}
-                            {bid.timestamp && (
-                              <div className="mt-1 text-xs text-indigo-400 text-right">
-                                {new Date(bid.timestamp).toLocaleTimeString()}
-                              </div>
-                            )}
-                          </div>
+                            bid={bid}
+                            isCurrentUser={isCurrentUser}
+                            isAIBot={isAIBot}
+                            currencySymbol={currencySymbol}
+                            formatWalletAddress={formatWalletAddress}
+                            isPaid={isPaid}
+                          />
                         );
                       })}
                     </div>
@@ -1045,6 +1333,25 @@ const TVStyleAuctionUI: React.FC<TVStyleAuctionUIProps> = ({
           </div>
         </section>
       </main>
+      
+      {/* Only render payment button in the main UI if modal is not shown */}
+      {isCurrentUserWinner && isAuctionFinalized && !isPaid && !showPaymentModal && (
+        <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-40">
+          <motion.button
+            onClick={() => setShowPaymentModal(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ y: 50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="py-3 px-6 rounded-full bg-gradient-to-r from-green-600 to-emerald-500 text-white font-medium flex items-center gap-2 shadow-lg shadow-green-900/30"
+          >
+            <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAADL0lEQVR4nO2VW0iTYRjH/5/7ZmqmxYIggkLooiDpIogisoukbdJpbi7n2K6SEUWlmUpWZkFkddPFuosdmHY4KapZnpZuzszj5jzt2DGnbnP7tvdDmey0C/F68X/1vs/z/J7/8zwvwX/+NFZ2N+k3VXZ11RXUbWHv4bCj44P7L6p7i0m4kaNBneO4zhKyGrtxNmzm9GhjQoJG8TdiXXuT8ZDew/kbObqy/mpiRke35cS2HHboyaKjpdOcbpDscQ/nMzX6mn7LAPk4/GK83bkMwKLwCBLMr+kLXDYRs4UPUNnVvMfY66cb+1vJdNi3eSJGRSjOOGycLkhZjIEo1bavayrqbpldOW2QeBBKEwb1sc9mEAB94cUdc2j09Qw2SMzm88Ud6VaWZbPYKMLDsg4Fm866vQNoqG31d7BEeTBBQEmdvrlHs47I+RmhaOvx1LyJjZ+c9fW7KLjwQWuGbWvj8X6wwfWIhLZOQXlqprWnm97Fma65OGJ5NLY8dY7LYRKaOoT39p6z00DJ9ZN7rB1Gh9OTdy3bdbCyYZqdAVcsp3ceNrRO0lfvpNnN5eUMAtDaeq7M1tkebRXsFPX1ZV1KG3OLLWO2epLZN0TZ/lHqxmQk1RKnXSyu7MwefNcSUd/iipgYcQX6pJNicfn16m4+Pdf2dWi+N3NwsBzp6cVrqg3FIVFVGkvvsyhzX1HYFecZ25s6ZuuYTORMj9eWhr9OyrlTYJ9uz1R3fe0HwJg7RkYk+JclAIwoU5GrDyM9vB0AtYod0ZaiVNkzvOxOLPCPpWxuXrYJ73E1YntLaFZ23l7glaWQ1IRA5A39QqCiSv0GS0Ss9oC0le8IKggdGDTzejyiQUllDS4HDypqrEmScNxTJDbn4JCiuEMRDiB8rPgWJLE1SXU3a/taoPNU43KhCveSNfidqUHnhQrMPFbiT3SPW95b0AeVe26oJYnm3Ff7oRhdfDaXpTmir6xMMej0xUQs+vR0bNjp9c3C/jqIXlM0o283AqDEffG55YLG2QU0HK58U9Sgh8jJaz5gK+zCVPHxZygTsiGThtWvqclDw2V3Fd/wLU77LCCW09MUAldPH4bXlIYNefEIVkbyFi6/2f8x/gJCgiuBo5lLJQAAAABJRU5ErkJggg==" 
+              className="w-6 h-6" 
+              alt="MetaMask" />
+            Complete Payment
+          </motion.button>
+        </div>
+      )}
     </div>
   );
 };
