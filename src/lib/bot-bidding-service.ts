@@ -42,6 +42,13 @@ let playerBeingAuctioned: any | null = null;
 // Create singleton autoBidService instance
 const autoBidService = new AutoBidService();
 
+// Function to check if a bot is the current highest bidder
+function botIsCurrentHighestBidder(currentBidder: string): boolean {
+  if (!currentBidder) return false;
+  const wallet = getBotWalletByAddress(currentBidder);
+  return wallet !== undefined && wallet.isAI;
+}
+
 // Function to calculate player interest based on bot personality
 function calculatePlayerInterest(botName: string, player: any): number {
   if (!player || !player.role) return 0.3;
@@ -164,7 +171,7 @@ async function payModeratorFee(
 async function getBotWalletSigner(provider: ethers.Provider, botName: string): Promise<ethers.Signer | null> {
   try {
     // Get the bot wallet from our predefined wallets
-    const botWallet = getBotWalletByName(botName);
+    const botWallet = getBotWalletByAddress(botName);
     if (!botWallet || !botWallet.privateKey) {
       console.error(`Bot wallet or private key not found for: ${botName}`);
       return null;
@@ -563,7 +570,7 @@ export const reactToUserBid = async (
 }
 
 // Helper function to check if a bot is the current highest bidder
-async function botIsCurrentHighestBidder(address: string): Promise<boolean> {
+async function botIsCurrentHighestBidderAsync(address: string): Promise<boolean> {
   const botWallets = await loadBotWallets();
   const BOT_ADDRESSES = botWallets.map((bot: BotWallet) => bot.address.toLowerCase());
   return BOT_ADDRESSES.includes(address.toLowerCase());

@@ -264,20 +264,31 @@ export const placeDirectBotBid = async (
   error?: string;
 }> => {
   try {
-    // Get the bot wallet
+    // Get the bot wallet with additional safety check
     const botWallet = getBotWalletByName(botName);
     if (!botWallet) {
+      console.error(`Bot wallet not found for ${botName}`);
       return {
         success: false,
         error: `Bot wallet not found for ${botName}`
       };
     }
 
+    // Validate bot wallet address before proceeding
+    if (!botWallet.address) {
+      console.error(`Invalid address for bot wallet ${botName}`);
+      return {
+        success: false,
+        error: `Invalid address for bot wallet ${botName}`
+      };
+    }
+
     console.log(`Placing direct bid from ${botName} (${botWallet.address}) of ${bidAmount} MONAD`);
 
-    // Get the signer for this specific bot
+    // Get the signer for this specific bot with additional validation
     const signer = await getBotSigner(provider, botWallet.address);
     if (!signer) {
+      console.error(`Could not create signer for bot ${botName}`);
       return {
         success: false,
         error: `Could not create signer for bot ${botName}`
@@ -291,23 +302,53 @@ export const placeDirectBotBid = async (
       signer
     );
 
-    // Convert bid amount to wei
+    // Convert bid amount to wei with validation
+    if (isNaN(bidAmount) || bidAmount <= 0) {
+      console.error(`Invalid bid amount for ${botName}: ${bidAmount}`);
+      return {
+        success: false,
+        error: `Invalid bid amount: ${bidAmount}`
+      };
+    }
+    
     const bidAmountWei = ethers.parseEther(bidAmount.toString());
 
     // Place the bid directly from the bot's wallet
     console.log(`Submitting bid transaction from ${botName} with amount ${bidAmount} MONAD`);
-    const tx = await contract.placeBid(auctionId, { value: bidAmountWei });
     
-    // Wait for transaction to be mined
-    const receipt = await tx.wait();
-    console.log(`Bid transaction confirmed: ${receipt.hash}`);
+    try {
+      // Add timeout protection to prevent indefinite hanging
+      const tx = await Promise.race([
+        contract.placeBid(auctionId, { value: bidAmountWei }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Transaction timeout")), 30000))
+      ]) as ethers.ContractTransaction;
+      
+      // Wait for transaction to be mined
+      const receipt = await tx.wait();
+      console.log(`Bid transaction confirmed: ${receipt.hash}`);
 
-    return {
-      success: true,
-      bidAmount: bidAmount,
-      txHash: receipt.hash
-    };
+      return {
+        success: true,
+        bidAmount: bidAmount,
+        txHash: receipt.hash
+      };
+    } catch (txError: any) {
+      console.error(`Transaction error for ${botName}:`, txError);
+      return {
+        success: false,
+        error: txError.message || "Error during transaction execution"
+      };
+    }
   } catch (error: any) {
+    // Handle specific error about lowest priority node
+    if (error.message && error.message.includes("lowest priority node")) {
+      console.error(`Priority queue error for ${botName}: No lowest priority node found. The queue may be empty.`);
+      return {
+        success: false,
+        error: "Bidding queue is empty. Please try again."
+      };
+    }
+    
     console.error(`Error placing direct bot bid for ${botName}:`, error);
     return {
       success: false,
