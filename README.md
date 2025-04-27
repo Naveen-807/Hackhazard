@@ -1,76 +1,152 @@
-# AuctioneerAI
+🏏 Bidion — IPL AI Auction & Trump Card Game
 
-## Overview
-AuctioneerAI is a real-time IPL auction platform with AI-powered auto-bidding, wallet-based authentication, and synchronized auction state for all users.
+Fully On-Chain IPL Player Auctions and Trump Card Battles Powered by Monad Blockchain and Groq AI
 
-## Features
-- Real-time auction state sync (Socket.IO backend)
-- AI moderator agent controls auction flow
-- AI and human bidding (manual/auto)
-- Wallet-based authentication (MetaMask)
-- User/team/budget management
-- User-friendly error handling and feedback
-- Secure backend (no private keys in frontend)
+📌 Problem Statement
+Problem Statement 11 – Decentralize Sports Gaming and Auctions
 
-## Setup
+🎯 Objective
+Bidion solves the lack of trustless, autonomous, and fully on-chain auction platforms in the sports gaming industry.
+We bring real IPL player NFTs to users, letting them participate in AI-powered player auctions and trump card battles — without human moderation or centralized control.
+It serves cricket fans, Web3 gamers, and collectors who want real asset ownership and seamless gameplay.
 
-### Prerequisites
-- Node.js (18+ recommended)
-- npm or yarn
-- MetaMask browser extension
+🧠 Team & Approach
 
-### Environment Variables
-Create a `.env` file in the root with:
-```
-NEXT_PUBLIC_AUCTION_BACKEND_URL=http://localhost:4000
-GROQ_API_KEY=your-groq-api-key
-```
+Team Name: Team Bidion
 
-### Install Dependencies
-```
+Team Members:
+
+Naveen  GitHub / LinkedIn / Developer, Blockchain Integration
+
+Lydia angelina(Ui Designer)
+
+Lokesh S(Backend/smart contract)
+
+Approach:
+
+We chose this because decentralized sports auctions are missing in the Web3 space.
+
+Key challenges: Building real-time AI bot bidding logic, managing on-chain transactions efficiently, and creating engaging trump card battles.
+
+Breakthroughs: Using Groq AI for fully autonomous bots and Monad for fast, gas-efficient real-time auctions.
+
+🛠️ Tech Stack
+
+Frontend:
+Next.js, TailwindCSS, ethers.js, framer-motion
+
+Backend:
+Hardhat (Smart Contract Deployment), Groq LPU integration
+
+Database:
+IPFS for NFT metadata storage
+
+APIs:
+
+Groq API for AI bot decision making
+
+Pinata/IPFS API for NFT asset handling
+
+Hosting:
+Vercel (Frontend)
+Monad Testnet (Smart Contracts)
+
+Sponsor Technologies Used:
+
+✅ Groq: AI-powered bot bidding, moderator functions for payments and rewards
+
+✅ Monad: Smart contract deployment for auctions, NFT minting, and reward handling
+
+✅ Fluvio: Real-time event streaming for bid updates (optional)
+
+
+✨ Key Features
+
+✅ Fully Autonomous IPL Player Auctions (AI + Users)
+✅ AI-Managed Payment Collection and Reward Distribution
+✅ Minted IPL Player NFTs (True Ownership, Trading)
+✅ Real-Time Trump Card Battles Based on Player Stats
+✅ Two Game Modes: Draft Team or Random Quick Battles
+✅ Fast, Low-Cost, Trustless Transactions (Monad Blockchain)
+✅ Real-Time Sound Effects & Stadium Visual Experience
+
+📽️ Demo & Deliverables
+
+Demo Video Link: [Paste Link Here]
+
+Pitch Deck Link: [Paste Google Slides / PDF Link Here]
+
+✅ Tasks & Bonus Checklist
+
+✅ All members followed social channels and filled the form
+
+✅ Bonus Task 1 completed (2 points)
+
+✅ Bonus Task 2 completed (3 points)
+
+🧪 How to Run the Project
+
+Requirements:
+
+Node.js v18+
+
+Hardhat (for contract deployment)
+
+IPFS API keys (e.g., Pinata)
+
+Monad Testnet Wallet and RPC URL
+
+Groq API key
+
+Local Setup:
+
+bash
+Copy
+Edit
+# Clone the repo
+git clone https://github.com/your-team/bidion
+
+# Install dependencies
+cd bidion
 npm install
-```
 
-### Start Backend (Socket.IO server)
-```
-npm run start:server
-# or
-node src/server/index.ts
-```
+# Setup .env file
+cp .env.example .env
+# Add your Monad RPC, IPFS, Groq API keys
 
-### Start Frontend (Next.js)
-```
+# Deploy Smart Contracts
+npx hardhat run scripts/deploy-ipl-player-card.js --network monad_testnet
+
+# Start development server
 npm run dev
-```
+Environment Notes:
+Backend and frontend are integrated. Smart contracts deployed separately.
 
-## Usage
-- Connect your wallet (MetaMask) to join the auction.
-- Place manual bids or enable auto-bidding.
-- All auction state is synchronized in real time.
-- AI moderator manages auction flow and transitions.
+🧬 Future Scope
 
-## Architecture
-- **Frontend:** Next.js + React + TypeScript
-- **Backend:** Express + Socket.IO (TypeScript, in-memory state for MVP)
-- **AI Logic:** Centralized in `src/lib/ai-bidding-agent.ts`
-- **User Management:** Wallet-based, tracked in backend
+📈 Expand to football, basketball auctions.
 
-## Testing
-- Unit tests: Add tests in `src/__tests__/` for core logic (AI, auction, bidding)
-- Integration tests: Simulate auction flow and user actions
+🤖 Personalized AI bot personalities (aggressive, defensive bidding styles).
 
-## Security
-- No private keys or sensitive data in frontend
-- All user input validated on backend
-- Rate limiting and DDoS protection recommended for production
+🏆 Leaderboard for top human players vs bots.
 
-## Configuration
-- All environment variables documented above
-- Update backend URL and API keys as needed
+🛡️ Advanced security for auction fairness (zero-knowledge proofs).
 
-## Contributing
-Pull requests welcome! Please add tests and update documentation for any changes.
+🌐 Localization to serve cricket fans worldwide.
 
----
+📎 Resources / Credits
 
-For more details, see `docs/blueprint.md`.
+Groq Developer Docs
+
+Monad Blockchain Docs
+
+Pinata IPFS API
+
+Open Source Libraries: ethers.js, TailwindCSS, Hardhat
+
+🏁 Final Words
+This is my First hackathon ....
+This hackathon was a crazy, exciting journey!
+We tackled real-time auctions, AI bot strategy building, and full blockchain integration — all within days.
+Huge thanks to Monad, Groq, and the hackathon organizers for pushing us to build something futuristic.
+We believe Bidion could be the future of decentralized sports gaming. 🏏🚀
