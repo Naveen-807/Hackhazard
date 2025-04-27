@@ -428,8 +428,46 @@ const AuctionPage: React.FC = () => {
     console.log("Simulating bot payment for demo purposes");
     
     try {
+      // Generate a realistic-looking fake transaction hash
+      const generateFakeHash = () => {
+        const chars = '0123456789abcdef';
+        let hash = '0x';
+        for (let i = 0; i < 64; i++) {
+          hash += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return hash;
+      };
+      
+      // Generate a realistic-looking NFT token ID
+      const generateNftTokenId = () => {
+        return Math.floor(Math.random() * 10000) + 1;
+      };
+      
+      const fakeTransactionHash = generateFakeHash();
+      const fakeNftTokenId = generateNftTokenId();
+      const fakeBlockNumber = 10000000 + Math.floor(Math.random() * 100000);
+      const fakeGasUsed = 100000 + Math.floor(Math.random() * 50000);
+      const fakeGasPrice = 0.0000001 + Math.random() * 0.0000005;
+
       // Simulate blockchain transaction delay - varies by team for realistic feel
       const randomDelay = 1500 + Math.random() * 2000; // 1.5-3.5 seconds
+      
+      // Update the bid history with processing transaction status
+      setBidHistory(prev => {
+        const updated = [...prev];
+        const lastIndex = updated.length - 1;
+        
+        if (lastIndex >= 0 && updated[lastIndex].bidder === highestBidder) {
+          updated[lastIndex] = {
+            ...updated[lastIndex],
+            status: 'PROCESSING',
+            txHash: fakeTransactionHash,
+            txDetails: 'Transaction submitted, awaiting confirmation...'
+          };
+        }
+        
+        return updated;
+      });
       
       setTimeout(() => {
         // Mark as paid
@@ -437,7 +475,7 @@ const AuctionPage: React.FC = () => {
         setIsProcessingPayment(false);
         setPaymentPending(false);
         
-        // Update the bid history with completed payment status
+        // Update the bid history with completed payment status including transaction hash
         setBidHistory(prev => {
           const updated = [...prev];
           const lastIndex = updated.length - 1;
@@ -445,24 +483,51 @@ const AuctionPage: React.FC = () => {
           if (lastIndex >= 0 && updated[lastIndex].bidder === highestBidder) {
             updated[lastIndex] = {
               ...updated[lastIndex],
-              status: 'PAID'
+              status: 'PAID',
+              txHash: fakeTransactionHash,
+              nftTokenId: fakeNftTokenId,
+              txDetails: {
+                blockNumber: fakeBlockNumber,
+                gasUsed: fakeGasUsed,
+                gasPrice: `${fakeGasPrice.toFixed(8)} ETH`,
+                timestamp: Math.floor(Date.now() / 1000),
+                confirmations: 1
+              }
             };
           }
           
           return updated;
         });
         
-        // Alert everyone
+        // Alert everyone with transaction hash
         toast({
           title: "Bot Payment Completed",
           description: `${highestBidderName} has paid ${MONAD_CONFIG.nativeCurrency.symbol}${currentBid.toFixed(5)}`,
           variant: "default",
           duration: 5000,
         });
+
+        // Show NFT minting toast after a short delay
+        setTimeout(() => {
+          toast({
+            title: "NFT Successfully Minted!",
+            description: `${selectedPlayer?.name} NFT has been minted to ${highestBidderName}'s wallet with token ID #${fakeNftTokenId}`,
+            variant: "default",
+            duration: 7000,
+          });
+          
+          // Show transaction confirmation toast
+          toast({
+            title: "Transaction Confirmed",
+            description: `Transaction hash: ${fakeTransactionHash.substring(0, 10)}...${fakeTransactionHash.substring(58)}`,
+            variant: "default",
+            duration: 5000,
+          });
+        }, 2000);
         
         // Update bot wallet balance (simulated)
         if (highestBidder && selectedPlayer) {
-          console.log(`Updating bot wallet balance for ${highestBidderName}`);
+          console.log(`Updating bot wallet balance for ${highestBidderName} - TxHash: ${fakeTransactionHash}`);
         }
         
         // Play success sound
@@ -517,7 +582,7 @@ const AuctionPage: React.FC = () => {
               }, 1000);
             }
           }
-        }, 3000);
+        }, 8000); // Slightly longer delay to allow users to see the NFT mint message
       }, randomDelay); // Variable delay for more realistic experience
     } catch (error) {
       console.error("Error in simulateBotPayment:", error);
@@ -594,7 +659,7 @@ const AuctionPage: React.FC = () => {
           if (botWallet) {
             botTeamInfo = {
               name: botWallet.name,
-              teamLogo: `https://ui-avatars.com/api/?name=${encodeURIComponent(botWallet.name)}&background=152238&color=fff&size=128`
+              teamLogo: `https://ui-avatars.com/api/?name=${encodeURIComponent(botWallet.name)}&background=152238&color=fff`
             };
           }
         }
@@ -1183,7 +1248,6 @@ const AuctionPage: React.FC = () => {
         ownedNFTs={ownedPlayerNFTs}
         currentPlayerIndex={currentPlayerIndex}
         playerQueue={players}
-        setCurrentPlayerIndex={setCurrentPlayerIndex}
         onPlaceUserBid={(amount: string) => {
           handlePlaceBid(parseFloat(amount));
         }}
@@ -1309,4 +1373,5 @@ const AuctionPage: React.FC = () => {
 };
 
 export default AuctionPage;
+
 

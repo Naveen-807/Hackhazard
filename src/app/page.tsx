@@ -48,9 +48,9 @@ export default function Home() {
       {/* Main content */}
       <div className="relative z-10 text-center mt-16 mb-8 w-full px-4">
         <h1 className="text-6xl md:text-8xl font-['VT323'] tracking-wider mb-4 text-white">
-          <span className="inline-block animate-pulse-glow text-cyan-400 glow">CRICKET </span>
-          <span className="inline-block text-white">TRUMP </span>
-          <span className="inline-block text-pink-400 glow">CARDS</span>
+          <span className="inline-block animate-pulse-glow text-cyan-400 glow">BID</span>
+          <span className="inline-block text-white">-</span>
+          <span className="inline-block text-pink-400 glow">ION</span>
         </h1>
         
         <div className="flex justify-center gap-8 mt-6 text-xl font-['VT323']">
@@ -65,16 +65,18 @@ export default function Home() {
         </p>
 
         <div className="flex flex-wrap justify-center gap-6 mt-8">
-          <button 
-            onClick={() => handleNavigate('/quick-match')} 
-            className="cyber-button-primary text-lg">
-            PLAY TRUMP CARDS
-          </button>
-          <button 
-            onClick={() => handleNavigate('/auction')} 
-            className="cyber-button-secondary text-lg">
-            JOIN AUCTION
-          </button>
+          <Link href="/quick-match" passHref>
+            <button 
+              className="cyber-button-primary text-lg">
+              PLAY TRUMP CARDS
+            </button>
+          </Link>
+          <Link href="/auction" passHref>
+            <button 
+              className="cyber-button-secondary text-lg">
+              JOIN AUCTION
+            </button>
+          </Link>
         </div>
       </div>
       

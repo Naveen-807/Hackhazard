@@ -720,6 +720,114 @@ export const isAIWallet = (address: string): boolean => {
   return wallet ? wallet.isAI : false;
 };
 
+/**
+ * Force all AI bots to participate in the current auction
+ * This function ensures all bots will place bids with more aggressive bidding patterns
+ */
+export const forceAllBotsToParticipate = async (
+  auctionId: number,
+  currentBid: number,
+  currentPlayerData: any
+): Promise<boolean> => {
+  try {
+    console.log("🤖 Forcing all AI bots to participate in bidding");
+    
+    // Stop any existing bidding first to reset the state
+    stopAllAutomatedBidding();
+    
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
+      console.error("No provider available for bot bidding");
+      return false;
+    }
+
+    // Create provider for blockchain interaction
+    const provider = new ethers.BrowserProvider((window as any).ethereum);
+    
+    // Get all available bot wallets
+    const botWallets = await loadBotWallets();
+    if (botWallets.length === 0) {
+      console.error("No bot wallets found");
+      return false;
+    }
+    
+    console.log(`Found ${botWallets.length} bot wallets to participate in auction`);
+
+    // Enhanced player object with current bid information
+    const enhancedPlayer = { 
+      ...currentPlayerData,
+      basePrice: currentBid || currentPlayerData.basePrice,
+      currentBid: currentBid,
+      auctionId: auctionId,
+      // Adding bidHistory to increase bid probability
+      bidHistory: Array(5).fill({ bidder: "dummy", amount: currentBid })
+    };
+    
+    playerBeingAuctioned = enhancedPlayer;
+    
+    // Start each bot with very short staggered delay (much shorter than normal)
+    botWallets.forEach((wallet: BotWallet, index: number) => {
+      // Much shorter delays (100-800ms) for even more active bidding
+      const staggerDelay = 100 + Math.random() * 700 + (index * 200);
+      
+      // Artificially increase each bot's balance to ensure they can bid
+      const originalBalance = wallet.balance;
+      wallet.balance = Math.max(wallet.balance, currentBid * 5); // Ensure each bot has enough balance
+      
+      setTimeout(() => {
+        // Override bot strategy to be more aggressive
+        const originalStrategy = wallet.strategy;
+        wallet.strategy = 'aggressive';
+        
+        // Set up a special high-frequency bidding interval for this bot
+        const fastBidInterval = setInterval(() => {
+          // Calculate a random bid increment (5-20%)
+          const increment = 0.05 + (Math.random() * 0.15);
+          const newBid = currentBid * (1 + increment);
+          
+          // Attempt to place a bid with 90% probability
+          if (Math.random() < 0.9) {
+            console.log(`🔥 ${wallet.name} actively bidding with high frequency`);
+            // Will trigger the handler in AuctionPage to process this bid
+            if (typeof window !== 'undefined') {
+              const bidEvent = new CustomEvent('ai-bot-bid', { 
+                detail: { 
+                  botAddress: wallet.address, 
+                  botName: wallet.name, 
+                  amount: Math.round(newBid * 10000) / 10000
+                } 
+              });
+              window.dispatchEvent(bidEvent);
+            }
+          }
+        }, 2000 + (index * 500)); // Each bot bids every 2-4 seconds
+        
+        // Also start the normal automated bidding (as backup)
+        startAutomatedBidding(wallet, provider, auctionId, enhancedPlayer);
+        
+        // Store the interval for cleanup
+        const existingInterval = activeBiddingIntervals.get(wallet.address);
+        activeBiddingIntervals.set(wallet.address, existingInterval || fastBidInterval);
+        
+        // Reset strategy and balance after 15 seconds
+        setTimeout(() => {
+          wallet.strategy = originalStrategy;
+          wallet.balance = originalBalance; // Restore original balance
+          
+          // Clear the fast bidding interval but keep normal bidding
+          clearInterval(fastBidInterval);
+        }, 15000);
+      }, staggerDelay);
+    });
+    
+    isAutomatedBiddingActive = true;
+    console.log(`🔥 All ${botWallets.length} bots are now actively bidding in auction #${auctionId}`);
+    return true;
+  } catch (error) {
+    console.error("Error forcing all bots to bid:", error);
+    return false;
+  }
+};
+
 // Interface for autoBidParams
 interface AutoBidParams {
   maxAmount: number;

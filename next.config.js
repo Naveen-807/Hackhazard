@@ -31,7 +31,7 @@ const nextConfig = {
               connect-src 'self' https://*.ankr.com https://*.monad.xyz wss://*.ankr.com wss://*.monad.xyz https://* ws://* http://localhost:* http://127.0.0.1:*;
               worker-src 'self' blob: data:;
               img-src 'self' data: https:;
-              font-src 'self' data:;
+              font-src 'self' data: https: https://fonts.googleapis.com https://fonts.gstatic.com;
               frame-src 'self' https:;
             `.replace(/\s+/g, ' ').trim()
           }
