@@ -16,11 +16,11 @@ Team Name: Team Bidion
 
 Team Members:
 
-Naveen  GitHub / LinkedIn / Developer, Blockchain Integration
+Naveen  (Backend/smart contract)
 
-Lydia angelina(Ui Designer)
+Lydia angelina(Frontend Developer)
 
-Lokesh S(Backend/smart contract)
+Lokesh (Backend/smart contract)
 
 Approach:
 
@@ -72,9 +72,9 @@ Sponsor Technologies Used:
 
 📽️ Demo & Deliverables
 
-Demo Video Link: [Paste Link Here]
+Demo Video Link: https://youtu.be/TOCChO-Mi34?si=6oSfhnhum4-uLkbe
 
-Pitch Deck Link: [Paste Google Slides / PDF Link Here]
+Hosted in vercel: https://hackhazard-umber.vercel.app/
 
 ✅ Tasks & Bonus Checklist
 
@@ -104,15 +104,15 @@ bash
 Copy
 Edit
 # Clone the repo
-git clone https://github.com/your-team/bidion
+git clone https://github.com/Naveen-807/Hackhazard.git
 
 # Install dependencies
-cd bidion
+cd Hackhazard
 npm install
 
 # Setup .env file
 cp .env.example .env
-# Add your Monad RPC, IPFS, Groq API keys
+
 
 # Deploy Smart Contracts
 npx hardhat run scripts/deploy-ipl-player-card.js --network monad_testnet
